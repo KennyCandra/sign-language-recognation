@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SLR - Verify OTP</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+</head>
+
+<body>
+
+    <main class="reset-page">
+        <div class="reset-card">
+            <div class="card-content">
+                <h2>Verify OTP</h2>
+                <p>Enter the 6-digit code sent to <strong>{{ email }}</strong></p>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div class="flash-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+
+                <form action="{{ url_for('verify_otp') }}" method="POST">
+                    <div class="otp-inputs" dir="ltr">
+                        <input type="text" maxlength="1" class="otp-box" autofocus>
+                        <input type="text" maxlength="1" class="otp-box">
+                        <input type="text" maxlength="1" class="otp-box">
+                        <input type="text" maxlength="1" class="otp-box">
+                        <input type="text" maxlength="1" class="otp-box">
+                        <input type="text" maxlength="1" class="otp-box">
+                    </div>
+                    <input type="hidden" id="otp" name="otp" value="">
+
+                    <button type="submit" class="send-otp-button">Verify</button>
+                </form>
+
+                <a href="{{ url_for('forget_password') }}" class="resend-link">Resend OTP</a>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const boxes = document.querySelectorAll('.otp-box');
+        const hiddenInput = document.getElementById('otp');
+
+        function updateHidden() {
+            hiddenInput.value = Array.from(boxes).map(b => b.value).join('');
+        }
+
+        boxes.forEach((box, i) => {
+            box.addEventListener('input', (e) => {
+                const val = e.target.value;
+                if (val.length === 1 && i < boxes.length - 1) {
+                    boxes[i + 1].focus();
+                }
+                updateHidden();
+            });
+
+            box.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !box.value && i > 0) {
+                    boxes[i - 1].focus();
+                }
+            });
+
+            box.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const data = e.clipboardData.getData('text').trim().slice(0, 6);
+                for (let j = 0; j < data.length; j++) {
+                    if (boxes[i + j]) {
+                        boxes[i + j].value = data[j];
+                    }
+                }
+                updateHidden();
+                const nextIdx = Math.min(i + data.length, boxes.length - 1);
+                boxes[nextIdx].focus();
+            });
+        });
+    </script>
+
+</body>
+
+</html>

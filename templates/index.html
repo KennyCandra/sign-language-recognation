@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+
+    <title>SLR</title>
+</head>
+
+<body>
+    <!-- header start -->
+    <header>
+        <div class="container">
+            <img class="logo" src="{{ url_for('static', filename='images/logo.png') }}" alt="">
+            <nav class="nav_links">
+                <ul>
+                   <li><a href="{{ url_for('home') }}">Home</a></li>
+                    <li><a href="{{ url_for('about_page') }}">About</a></li>
+                    {% if session.get('user_id') %}
+                    <li><a href="{{ url_for('open_camera') }}">Letters Camera</a></li>
+                    <li><a href="{{ url_for('words_camera') }}">Words Camera</a></li>
+                    <li><a href="{{ url_for('text_to_sign') }}">Text to Sign</a></li>
+                    <li><a href="{{ url_for('logout') }}">Logout</a></li>
+                    {% else %}
+                    <li><a href="{{ url_for('login') }}">Login</a></li>
+                    <li><a href="{{ url_for('register') }}">Register</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <!-- header end -->
+
+    <!-- section1 start -->
+    <div class="section1" id="">
+        <div class="container">
+            <div class="txt">
+                <h1>Increase your Cognitive Brain Power with SLR.</h1>
+                <p>It has been proven in studies that learning sign language keeps you on your feet as you age and also
+                    increase your thinking power.Also learning sign language will help you communicate with 72 Million
+                    Speakers worldwide. So Test out our tool, Learn and Practice Sign Language and Have Fun.</p>
+                {% if not session.get('user_id') %}
+                <a href="{{ url_for('login') }}"><button class="start" id="login">Get Started</button></a>
+                {% endif %}
+
+
+            </div>
+            <img class="signhand" src="{{ url_for('static', filename='images/signhand.png') }}" alt="">
+
+
+        </div>
+
+    </div>
+    <!-- section1 end -->
+
+    <!-- Features Section (Letters / Words / Text to Sign) -->
+    {% if session.get('user_id') %}
+    <section class="features-section">
+        <div class="container">
+            <h2 class="features-title">Choose Your Learning Mode</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🔤</div>
+                    <h3>Letters Detection</h3>
+                    <p>Use your camera to practice ASL alphabet letters. The AI will recognize each letter you sign in real-time.</p>
+                    <a href="{{ url_for('open_camera') }}"><button class="feature-btn">Open Letters Camera</button></a>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📝</div>
+                    <h3>Words Detection</h3>
+                    <p>Practice common ASL word signs. The AI detects word-level gestures like Hello, I Love You, Peace, and more.</p>
+                    <a href="{{ url_for('words_camera') }}"><button class="feature-btn">Open Words Camera</button></a>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">✍️</div>
+                    <h3>Text to Sign</h3>
+                    <p>Type any word in English and see how to sign it in ASL. Shows fingerspelling and common word signs.</p>
+                    <a href="{{ url_for('text_to_sign') }}"><button class="feature-btn">Open Text to Sign</button></a>
+                </div>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- section2 strat -->
+    <section class="signlanguage">
+        <div class="container">
+            <div class="what">
+                <h2>What Sign Language?</h2>
+                <p>Sign Language is a visual language using hand gestures, facial expressions, and body movements to
+                    communicate. It is recognized as an official language in many countries and is primarily used by
+                    people
+                    who are deaf or hard of hearing.</p>
+            </div>
+            <div class="signinfo">
+                <div class="learn">
+                    <h2>Learn</h2>
+                    <p>Start Learning this interesting sign language by learning basic signs for alphabets and common
+                        words from our Guide Section.</p>
+                </div>
+                <div class="practice">
+                    <h2>Practice</h2>
+                    <p>Go to the Detect Section and Practice the sign until our model detects and recognizes it
+                        completely.</p>
+                </div>
+                <div class="test">
+                    <h2>Test</h2>
+                    <p>Test yourself on the same tool by trying to think of a sign in your mind, doing it, and letting
+                        the model recognize it. Then, do the signs again without referring to the guide.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- section2 end -->
+    <!-- footer start -->
+    <footer class="foot">
+        <div class="container">
+            <div class="Communication">
+                <h2>Revolutionizing Sign Language
+                    Communication with Cutting-Edge Technology</h2>
+                <p>Explore the Features</p>
+            </div>
+            <div class="terminology">
+                <div class="term">
+                    <h3>Real-Time Recognition</h3>
+                    <p>Our advanced machine learning algorithms enable real-time recognition of sign language gestures,
+                        makingcommunication faster and more efficient.</p>
+                </div>
+
+                <div class="term">
+                    <h3>Easy-to-Use Interface</h3>
+                    <p>Our intuitive user interface is designed to be easy to use for people of all ages and skill
+                        levels, making it accessible to everyone.</p>
+                </div>
+
+                <div class="term">
+                    <h3>Adaptive Learning</h3>
+                    <p>Our system uses adaptive learning to improve recognition accuracy over time, allowing for
+                        continuousimprovement and increased efficiency.</p>
+                </div>
+
+                <div class="term">
+                    <h3>High Accuracy</h3>
+                    <p>OWith a high accuracy rate of over 80%, our system ensures that sign language communication is
+                        notonly faster, but also more accurate.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <!-- footer end -->
+
+    <!-- copy right start -->
+    <section class="copyrightsection">
+        <div class="container">
+            <p class="copyright">©2025 My Website. All rights reserved.</p>
+        </div>
+    </section>
+    <!-- copy right end -->
+
+</body>
+
+</html>

@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera - SLR</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
+
+
+</head>
+
+<body>
+
+<button class="back-btn">Back</button>
+
+<div class="page">
+
+    <div class="card">
+
+        <!-- TOP -->
+        <div class="top-section">
+
+            <!-- Camera -->
+            <div class="video-box">
+                <div class="video-placeholder">
+                    Camera is off <br>
+                    <small>Click Start to begin</small>
+                </div>
+            </div>
+
+            <!-- Landmarks -->
+            <div class="video-box light">
+                <div class="video-placeholder">
+                    Hand Landmarks<br>
+                    <small>Visualization will appear here</small>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- BOTTOM -->
+        <div class="bottom-section">
+
+            <div class="top-controls">
+                <div class="char">
+                 Character: <strong id="result"></strong>
+                </div>
+
+
+                <div class="buttons">
+                    <button class="btn start">Start</button>
+                    <button class="btn stop">Stop</button>
+                    <button class="btn clear">Clear</button>
+                </div>
+            </div>
+
+            <div class="block">
+                <div class="label">
+                    Sentence:
+                    <button class="copy-btn">Copy</button>
+                </div>
+
+                <div class="sentence-box">
+                    
+                </div>
+            </div>
+
+            <div class="translate">
+                <select id="lang-select">
+                    <option>Arabic</option>
+                    <option>English</option>
+                    <option>French</option>
+                    <option>German</option>
+                    <option>Spanish</option>
+                </select>
+
+                <button class="btn translate-btn">Translate</button>
+            </div>
+
+            <div class="block">
+                <div class="label">
+                    Translation:
+                    <button class="copy-btn">Copy</button>
+                </div>
+
+                <div class="sentence-box" id="translation-box">
+                    
+                </div>
+
+                <audio id="tts-audio" controls></audio>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const startBtn = document.querySelector('.btn.start');
+    const stopBtn = document.querySelector('.btn.stop');
+    const backBtn = document.querySelector('.back-btn'); // زر الرجوع
+    const clearBtn = document.querySelector('.btn.clear');
+    const videoBox = document.querySelector('.top-section .video-box:first-child');
+    const landmarksBox = document.querySelector('.top-section .video-box.light');
+    const resultBox = document.getElementById("result");
+    const sentenceBox = document.querySelector(".bottom-section .sentence-box");
+
+    let stream = null;
+    let videoElement = null;
+    let animationId = null;
+    let currentSentence = "";
+
+    // Canvas للـ landmarks
+    const canvasLandmarks = document.createElement('canvas');
+    canvasLandmarks.style.width = "100%";
+    canvasLandmarks.style.height = "100%";
+    landmarksBox.appendChild(canvasLandmarks);
+    const ctxLandmarks = canvasLandmarks.getContext('2d');
+
+    // MediaPipe Hands
+    const hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+
+    hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
+    });
+
+    let lastPrediction = "";
+    let lastPredictionTime = 0;
+    const PREDICTION_DELAY = 1000; // تأخير ثانية بين كل تنبؤ
+
+    hands.onResults(results => {
+        canvasLandmarks.width = landmarksBox.clientWidth;
+        canvasLandmarks.height = landmarksBox.clientHeight;
+        ctxLandmarks.clearRect(0, 0, canvasLandmarks.width, canvasLandmarks.height);
+
+        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+            const landmarks = results.multiHandLandmarks[0];
+
+            if (!landmarks || landmarks.length === 0) return;
+
+            // رسم الـ landmarks على الكانفاس
+            drawConnectors(ctxLandmarks, landmarks, HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 3});
+            drawLandmarks(ctxLandmarks, landmarks, {color: '#FF0000', lineWidth: 1});
+
+            // تأخير بين كل تنبؤ عشان ميكررش الحروف
+            const now = Date.now();
+            if (now - lastPredictionTime < PREDICTION_DELAY) return;
+            lastPredictionTime = now;
+
+            try {
+                // Normalize landmarks (same as create_dataset.py / test.py)
+                const xCoords = landmarks.map(lm => lm.x);
+                const yCoords = landmarks.map(lm => lm.y);
+                const minX = Math.min(...xCoords);
+                const minY = Math.min(...yCoords);
+
+                const normalizedLandmarks = [];
+                for (let i = 0; i < landmarks.length; i++) {
+                    normalizedLandmarks.push(landmarks[i].x - minX);
+                    normalizedLandmarks.push(landmarks[i].y - minY);
+                }
+
+                fetch("/predict", {
+                    method: "POST",
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({landmarks: normalizedLandmarks})
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.prediction) {
+                        const char = data.prediction;
+                        resultBox.innerText = char;
+                        if (char !== 'nothing' && char !== lastPrediction) {
+                            lastPrediction = char;
+                            if (char === 'space') {
+                                currentSentence += ' ';
+                            } else if (char === 'del') {
+                                currentSentence = currentSentence.slice(0, -1);
+                            } else {
+                                currentSentence += char;
+                            }
+                            sentenceBox.innerText = currentSentence;
+                        }
+                    }
+                })
+                .catch(err => console.log("Fetch error:", err));
+            } catch (e) {
+                console.log("Landmark processing error:", e);
+            }
+        }
+    });
+
+    // Start camera
+    async function startCamera() {
+        if (stream) return;
+
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            videoElement = document.createElement('video');
+            videoElement.autoplay = true;
+            videoElement.playsInline = true;
+            videoElement.srcObject = stream;
+
+            videoElement.style.position = "absolute";
+            videoElement.style.top = "0";
+            videoElement.style.left = "0";
+            videoElement.style.width = "100%";
+            videoElement.style.height = "100%";
+            videoElement.style.zIndex = "1";
+
+            videoBox.appendChild(videoElement);
+
+            const placeholder = videoBox.querySelector(".video-placeholder");
+            if (placeholder) placeholder.style.display = "none";
+
+            const landmarkPlaceholder = landmarksBox.querySelector(".video-placeholder");
+            if (landmarkPlaceholder) landmarkPlaceholder.style.display = "none";
+
+            videoElement.onloadedmetadata = () => detectFrame();
+        } catch (err) {
+            console.error("Camera Error:", err);
+        }
+    }
+
+    // Stop camera
+    function stopCamera() {
+        if (animationId) cancelAnimationFrame(animationId);
+
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+
+        if (videoElement && videoElement.parentNode === videoBox) {
+            videoBox.removeChild(videoElement);
+        }
+
+        const placeholder = videoBox.querySelector(".video-placeholder");
+        if (placeholder) placeholder.style.display = "flex";
+
+        const landmarkPlaceholder = landmarksBox.querySelector(".video-placeholder");
+        if (landmarkPlaceholder) landmarkPlaceholder.style.display = "flex";
+
+        ctxLandmarks.clearRect(0, 0, canvasLandmarks.width, canvasLandmarks.height);
+        videoElement = null;
+        resultBox.innerText = "-";
+    }
+
+    // Detect frame
+    async function detectFrame() {
+        if (videoElement && stream) {
+            await hands.send({image: videoElement});
+            animationId = requestAnimationFrame(detectFrame);
+        }
+    }
+
+    // Listeners
+    startBtn.addEventListener("click", startCamera);
+    stopBtn.addEventListener("click", stopCamera);
+    clearBtn.addEventListener("click", () => {
+        resultBox.innerText = "-";
+        ctxLandmarks.clearRect(0, 0, canvasLandmarks.width, canvasLandmarks.height);
+        currentSentence = "";
+        sentenceBox.innerText = "";
+    });
+
+    // Back button listener
+    if (backBtn) {
+        backBtn.addEventListener('click', () => {
+            stopCamera(); // وقف الكاميرا أولاً
+            if (document.referrer && document.referrer !== "") {
+                window.history.back();
+            } else {
+                window.location.href = '/home';
+            }
+        });
+    }
+    // ----------------------- Translation -----------------------
+    const translateBtn = document.querySelector('.btn.translate-btn');
+    const langSelect = document.getElementById('lang-select');
+    const translationBox = document.getElementById('translation-box');
+    const ttsAudio = document.getElementById('tts-audio');
+
+    translateBtn.addEventListener('click', () => {
+        const text = currentSentence.trim();
+        const lang = langSelect.value;
+
+        if (!text) {
+            translationBox.innerText = "No sentence to translate.";
+            return;
+        }
+
+        translateBtn.innerText = "Translating...";
+        translateBtn.disabled = true;
+
+        fetch('/translate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({text: text, lang: lang})
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.translation) {
+                translationBox.innerText = data.translation;
+
+                // جلب الصوت تلقائياً بعد الترجمة
+                fetch('/tts', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({text: data.translation, lang: lang})
+                })
+                .then(res => res.blob())
+                .then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    ttsAudio.src = url;
+                })
+                .catch(err => console.log("TTS error:", err));
+            } else {
+                translationBox.innerText = "Translation failed.";
+            }
+        })
+        .catch(err => {
+            console.log("Translate error:", err);
+            translationBox.innerText = "Translation failed.";
+        })
+        .finally(() => {
+            translateBtn.innerText = "Translate";
+            translateBtn.disabled = false;
+        });
+    });});
+</script>
+
+</body>
+</html>

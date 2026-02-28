@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+    <title>SLR</title>
+</head>
+
+<body>
+    <!-- header start -->
+    <header>
+        <div class="container">
+<img class="logo" src="{{ url_for('static', filename='images/logo.png') }}" alt="">
+            <nav class="nav_links">
+                <ul>
+                   <li><a href="{{ url_for('home') }}">Home</a></li>
+                    <li><a href="{{ url_for('about_page') }}">About</a></li>
+                    <li><a href="{{ url_for('login') }}">Login</a></li>
+                    <li><a href="{{ url_for('register') }}">Register</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <!-- header end -->
+    <!-- start main -->
+    <main class="login-page">
+
+        <div class="login-card" id="loginCard">
+
+            <div class="login-form-side">
+                <span class="welcome-tag">Welcome</span>
+                <h2>Login Your Account</h2>
+
+                <form action="/login" method="POST">
+                    <div class="input-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                     <div class="flash-message">
+                     {% for message in messages %}
+                     <p>{{ message }}</p>
+                    {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+
+                    <button type="submit" class="login-button">Login</button>
+                </form>
+
+                <div class="footer-links">
+                    <a href="{{ url_for('register') }}">Create Account</a>
+                    <a href="{{ url_for('forget_password') }}">Forgot Password?</a>                
+                </div>
+            </div>
+
+            <div class="visual-side">
+<img src="{{ url_for('static', filename='images/login.png') }}" alt="" class="login">
+            </div>
+
+        </div>
+    </main>
+    <!-- end main -->
+    <!-- copy right start -->
+    <section class="copyrightsection">
+        <div class="container">
+            <p class="copyright">©2025 My Website. All rights reserved.</p>
+        </div>
+    </section>
+    <!-- copy right end -->
+
+</body>
+
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Sign - SLR</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+</head>
+
+<body>
+
+<button class="back-btn" onclick="window.location.href='/'">Back</button>
+
+<div class="page">
+
+    <div class="card text-to-sign-card">
+
+        <h2 class="tts-title">Text to Sign Language</h2>
+        <p class="tts-subtitle">Type a word or sentence in English and see the ASL fingerspelling</p>
+
+        <!-- Input Area -->
+        <div class="tts-input-area">
+            <input type="text" id="word-input" class="tts-input" placeholder="Type a word or sentence... (e.g. hello)" autocomplete="off">
+            <button class="btn tts-show-btn" id="show-sign-btn">Show Sign</button>
+        </div>
+
+        <!-- Result Area -->
+        <div class="tts-result-area" id="result-area" style="display: none;">
+
+            <!-- Fingerspelling Section -->
+            <div class="fingerspell-section" id="fingerspell-section">
+                <h3 class="result-label">Fingerspelling: <span id="spell-word"></span></h3>
+                <div class="fingerspell-display" id="fingerspell-display">
+                    <!-- Letter images will be injected here -->
+                </div>
+                <div class="fingerspell-controls">
+                    <button class="btn play-btn" id="play-btn">▶ Play Animation</button>
+                    <button class="btn pause-btn" id="pause-btn" style="display:none;">⏸ Pause</button>
+                    <div class="speed-control">
+                        <label>Speed:</label>
+                        <input type="range" id="speed-slider" min="300" max="2000" value="800" step="100">
+                        <span id="speed-label">0.8s</span>
+                    </div>
+                </div>
+                <div class="current-letter-display">
+                    <span>Current Letter: </span>
+                    <strong id="current-letter">-</strong>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const wordInput = document.getElementById('word-input');
+    const showSignBtn = document.getElementById('show-sign-btn');
+    const resultArea = document.getElementById('result-area');
+    const fingerspellSection = document.getElementById('fingerspell-section');
+    const spellWord = document.getElementById('spell-word');
+    const fingerspellDisplay = document.getElementById('fingerspell-display');
+    const playBtn = document.getElementById('play-btn');
+    const pauseBtn = document.getElementById('pause-btn');
+    const speedSlider = document.getElementById('speed-slider');
+    const speedLabel = document.getElementById('speed-label');
+    const currentLetterEl = document.getElementById('current-letter');
+
+    let animationTimeout = null;
+    let currentIndex = 0;
+    let isPlaying = false;
+    let currentWord = ''; // Store the original word for pronunciation
+
+    // ASL hand sign images for each letter
+    const letterImages = {};
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(letter => {
+        letterImages[letter] = `{{ url_for('static', filename='images/') }}${letter}.png`;
+    });
+
+    // Speak text using Web Speech API
+    function speakLetter(letter) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(letter);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.9;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    function speakWord(text) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.85;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    // Show sign for a word
+    function showSign(word) {
+        word = word.trim();
+        if (!word) return;
+
+        currentWord = word;
+        resultArea.style.display = 'block';
+        stopAnimation();
+        showFingerspelling(word);
+    }
+
+    // Show fingerspelling for a word
+    function showFingerspelling(word) {
+        const letters = word.toUpperCase().split('').filter(ch => /[A-Z]/.test(ch));
+        spellWord.innerText = word.toUpperCase();
+        fingerspellDisplay.innerHTML = '';
+        currentIndex = 0;
+
+        letters.forEach((letter, index) => {
+            const letterCard = document.createElement('div');
+            letterCard.className = 'letter-card';
+            letterCard.id = `letter-${index}`;
+            
+            const img = document.createElement('img');
+            img.src = letterImages[letter];
+            img.alt = letter;
+            img.onerror = function() {
+                this.style.display = 'none';
+                letterCard.querySelector('.letter-fallback').style.display = 'flex';
+            };
+            
+            const fallback = document.createElement('div');
+            fallback.className = 'letter-fallback';
+            fallback.style.display = 'none';
+            fallback.innerText = letter;
+            
+            const label = document.createElement('span');
+            label.className = 'letter-label';
+            label.innerText = letter;
+
+            letterCard.appendChild(img);
+            letterCard.appendChild(fallback);
+            letterCard.appendChild(label);
+            fingerspellDisplay.appendChild(letterCard);
+        });
+
+        playBtn.style.display = 'inline-block';
+        pauseBtn.style.display = 'none';
+        currentLetterEl.innerText = '-';
+    }
+
+    // Animation controls
+    function startAnimation() {
+        const cards = fingerspellDisplay.querySelectorAll('.letter-card');
+        if (cards.length === 0) return;
+
+        isPlaying = true;
+        playBtn.style.display = 'none';
+        pauseBtn.style.display = 'inline-block';
+        currentIndex = 0;
+
+        function highlightNext() {
+            cards.forEach(c => c.classList.remove('active'));
+            if (currentIndex < cards.length) {
+                const card = cards[currentIndex];
+                card.classList.add('active');
+                card.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'center'});
+                
+                const letter = card.querySelector('.letter-label').innerText;
+                currentLetterEl.innerText = letter;
+                
+                // Speak the letter
+                speakLetter(letter);
+                
+                currentIndex++;
+                animationTimeout = setTimeout(highlightNext, parseInt(speedSlider.value));
+            } else {
+                stopAnimation();
+                currentLetterEl.innerText = "Done!";
+                // Speak the full word/sentence after finishing letters
+                setTimeout(() => {
+                    speakWord(currentWord);
+                }, 400);
+            }
+        }
+
+        highlightNext();
+    }
+
+    function stopAnimation() {
+        if (animationTimeout) {
+            clearTimeout(animationTimeout);
+            animationTimeout = null;
+        }
+        isPlaying = false;
+        playBtn.style.display = 'inline-block';
+        pauseBtn.style.display = 'none';
+        
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+        }
+        
+        const cards = fingerspellDisplay.querySelectorAll('.letter-card');
+        cards.forEach(c => c.classList.remove('active'));
+    }
+
+    playBtn.addEventListener('click', startAnimation);
+    pauseBtn.addEventListener('click', stopAnimation);
+
+    speedSlider.addEventListener('input', () => {
+        speedLabel.innerText = (parseInt(speedSlider.value) / 1000).toFixed(1) + 's';
+    });
+
+    // Show sign button
+    showSignBtn.addEventListener('click', () => {
+        showSign(wordInput.value);
+    });
+
+    // Enter key
+    wordInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            showSign(wordInput.value);
+        }
+    });
+});
+</script>
+
+</body>
+</html>

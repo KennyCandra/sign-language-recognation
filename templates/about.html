@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+    <title>SLR</title>
+</head>
+
+<body>
+    <!-- header start -->
+    <header>
+        <div class="container">
+            <img class="logo" src="{{ url_for('static', filename='images/logo.png') }}" alt="">
+            <nav class="nav_links">
+                <ul>
+                   <li><a href="{{ url_for('home') }}">Home</a></li>
+                    <li><a href="{{ url_for('about_page') }}">About</a></li>
+                    {% if session.get('user_id') %}
+                    <li><a href="{{ url_for('logout') }}">Logout</a></li>
+                    <li><a href="{{ url_for('open_camera') }}">Open Camera</a></li>
+                    {% else %}
+                    <li><a href="{{ url_for('login') }}">Login</a></li>
+                    <li><a href="{{ url_for('register') }}">Register</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <!-- header end -->
+    <!-- about start-->
+    <section class="about-section">
+        <div class="container">
+            <div class="imghello">
+                <img src="{{ url_for('static', filename='images/hello.png') }}" alt="" class="hello">
+            </div>
+            <div class="how-it-work">
+                <h1>Get to know, How it Works !</h1>`
+                <p>Get to know, How it Works ! To use the sign language recognition system, you simply need to get your
+                    hand
+                    detected and make a sign. Once you make a sign, refer to the guide for the corresponding words. The
+                    system will then scan your hand and use its built-in model to predict the sign you have made.
+                    Finally,
+                    the predicted class will be displayed, allowing you to communicate effectively through sign
+                    language.
+                    With this system, you can bridge the communication gap between sign language users and non-sign
+                    language
+                    users, making it easier for everyone to connect and interact.</p>
+            </div>
+
+        </div>
+    </section>
+    <!-- about end -->
+    <!-- sign american start -->
+    <section class="sign-american">
+        <div class="container">
+            <h1>American Sign Language (ASL)</h1>
+            <div class="sign-imgs">
+                <img class="ph" src="{{ url_for('static', filename='images/A.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/B.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/C.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/D.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/E.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/F.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/G.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/H.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/I.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/J.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/K.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/L.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/M.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/N.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/O.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/P.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/Q.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/R.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/S.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/T.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/U.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/V.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/W.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/X.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/Y.png') }}" alt="">
+                <img class="ph" src="{{ url_for('static', filename='images/Z.png') }}" alt="">
+            </div>
+        </div>
+    </section>
+    <!-- sign american end -->
+    <!-- about us start -->
+
+    <section class="about-us">
+        <div class="container">
+            <div class="about-me">
+                <h2>About Me</h2>
+                <p>I am a dedicated IT student, passionate about making a difference through technology. I have
+                    expertise in areas like backend development, frontend design, artificial intelligence, and user
+                    experience.</p>
+            </div>
+            <div class="my-vision">
+                <h2>My Vision</h2>
+                <p> My goal is to expand the system to include a comprehensive range of signs and gestures, support
+                    multiple languages and dialects, and enhance accessibility for all.</p>
+            </div>
+            <div class="my-goal">
+                <h2>My Goals</h2>
+                <ul>
+                    <li>Empower individuals to learn and practice sign language.</li>
+                    <li>Facilitate communication with over 72 million sign language users worldwide.</li>
+                    <li>Promote inclusion and accessibility through technology.</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+    <!-- about us end -->
+
+
+
+
+
+
+
+
+    <!-- copy right start -->
+    <section class="copyrightsection">
+        <div class="container">
+            <p class="copyright">©2025 My Website. All rights reserved.</p>
+        </div>
+    </section>
+    <!-- copy right end -->
+</body>
+
+</html>

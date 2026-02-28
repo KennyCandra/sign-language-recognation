@@ -1,0 +1,25 @@
+/* Small screen (mobile) */
+@media (max-width: 767px) {
+    /* navbar in mobile & tablets */
+}
+
+/* Medium screen (tablets) */
+@media (min-width: 768px) {
+    .container {
+        width: 750px;
+    }
+}
+
+/* Large screen (labtop) */
+@media (min-width: 992px) {
+    .container {
+        width: 970px;
+    }
+}
+
+/* X-Large screen (computer) */
+@media (min-width: 1200px) {
+    .container {
+        width: 1170px;
+    }
+}
