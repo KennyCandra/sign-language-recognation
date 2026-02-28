@@ -40,7 +40,7 @@ def is_valid_password(password):
     pattern = r'^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
     return re.match(pattern, password)
 
-app.secret_key = "anyrandomstring"
+app.secret_key = os.environ.get('SECRET_KEY', 'anyrandomstring')
 
 # OTP storage: {email: {'otp': '123456', 'expires': datetime}}
 otp_storage = {}
@@ -48,8 +48,8 @@ otp_storage = {}
 # Email configuration
 SMTP_SERVER = 'smtp.gmail.com'
 SMTP_PORT = 587
-SMTP_EMAIL = 'kero22197@gmail.com'
-SMTP_PASSWORD = 'npsbotisrbnawcsb'
+SMTP_EMAIL = os.environ.get('SMTP_EMAIL', 'kero22197@gmail.com')
+SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', 'npsbotisrbnawcsb')
 
 def generate_otp():
     return str(random.randint(100000, 999999))
@@ -401,4 +401,5 @@ def text_to_speech():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)

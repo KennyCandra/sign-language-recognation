@@ -27,5 +27,4 @@ Thumbs.db
 # Model data (large files)
 AI  model/data/
 AI  model/asl_test/
-AI  model/model.p
 AI  model/train _graphs/
