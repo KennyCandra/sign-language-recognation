@@ -1,23 +1,604 @@
-/* Small screen (mobile) */
-@media (max-width: 767px) {
-    /* navbar in mobile & tablets */
+/* ============================================================
+   responsive.css  –  Fixed Version
+   Fixes:
+   1. Nav dropdown clipping (appears behind content / disappears)
+   2. Camera + Hand Landmarks not visible on mobile
+   3. Tool pages general responsive improvements
+   ============================================================ */
+
+/* ─── Global responsive safety ─────────────────────────────── */
+body {
+    overflow-x: hidden;
 }
 
-/* Medium screen (tablets) */
-@media (min-width: 768px) {
+img,
+video,
+canvas {
+    max-width: 100%;
+}
+
+/* ─── NAV DROPDOWN FIX ──────────────────────────────────────
+   Root cause: the <li> with position:relative clips the menu,
+   and z-index was too low. We lift the open dropdown above
+   everything and make sure no ancestor clips it.
+   ─────────────────────────────────────────────────────────── */
+.nav-dropdown {
+    position: static;
+    /* so the menu escapes the li's clip */
+}
+
+.nav-dropdown.open {
+    position: relative;
+    /* restore stacking only when open */
+    z-index: 1200;
+}
+
+/* The menu itself must always paint on top */
+.nav-dropdown-menu {
+    z-index: 1200 !important;
+}
+
+/* Make sure the nav container never clips its children */
+.nav_links,
+.nav_links ul,
+header .container {
+    overflow: visible !important;
+}
+
+
+/* ============================================================
+   SMALL TABLETS AND DOWN  (≤ 991 px)
+   ============================================================ */
+@media (max-width: 991px) {
+
     .container {
-        width: 750px;
+        width: 100%;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    /* ── Header ── */
+    header .container {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: nowrap;
+        padding: 10px 12px;
+        gap: 10px;
+        overflow: visible;
+        /* never clip the dropdown */
+    }
+
+    .container .logo {
+        width: 56px;
+        flex: 0 0 auto;
+    }
+
+    .container .nav_links {
+        flex: 1;
+        min-width: 0;
+        overflow: visible;
+        /* never clip the dropdown */
+    }
+
+    .nav_links ul {
+        display: flex;
+        flex-wrap: nowrap;
+        justify-content: center;
+        align-items: center;
+        gap: 2px;
+        overflow-x: auto;
+        overflow-y: visible;
+        /* let dropdown escape downward */
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+        padding-bottom: 2px;
+    }
+
+    .nav_links ul::-webkit-scrollbar {
+        display: none;
+    }
+
+    .container .nav_links li {
+        padding: 0 6px;
+        flex: 0 0 auto;
+        overflow: visible;
+        /* don't clip child dropdown */
+    }
+
+    .container .nav_links li a,
+    .nav-dropdown-toggle {
+        font-size: 14px;
+        white-space: nowrap;
+        padding: 8px 0;
+    }
+
+    /* Dropdown – appear ABOVE the text row, not below where it gets clipped */
+    .nav-dropdown-menu {
+        position: fixed;
+        /* fixed escapes every clipping ancestor */
+        top: auto;
+        left: 50%;
+        transform: translateX(-50%) translateY(-8px);
+        min-width: 200px;
+        width: max-content;
+        max-width: min(92vw, 340px);
+        margin: 0;
+        z-index: 1200 !important;
+        padding: 8px 0;
+        /* padding top/bottom للقائمة نفسها */
+    }
+
+    /* padding للينكات جوا الـ dropdown */
+    .nav-dropdown-menu a {
+        padding: 12px 24px;
+        /* زيادة الـ padding يمين وشمال */
+    }
+
+    .nav-dropdown.open .nav-dropdown-menu {
+        transform: translateX(-50%) translateY(0);
+    }
+
+    /* Profile */
+    .profile-wrapper {
+        margin-left: auto;
+        margin-top: 0;
+        flex: 0 0 auto;
+    }
+
+    .profile-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
+
+    .profile-dropdown {
+        min-width: 220px;
+        max-width: calc(100vw - 30px);
+    }
+
+    /* ── Home / About sections ── */
+    .section1 .container {
+        flex-direction: column;
+        text-align: center;
+        padding-top: 30px;
+    }
+
+    .section1 .container h1 {
+        font-size: 2.3rem;
+    }
+
+    .section1 .container p {
+        padding-bottom: 24px;
+    }
+
+    .section1 .container img {
+        width: 100%;
+        max-width: 450px;
+        margin-top: 15px;
+    }
+
+    .signlanguage {
+        padding: 40px 0;
+    }
+
+    .signlanguage .container .signinfo {
+        flex-direction: column;
+        gap: 26px;
+        text-align: center;
+    }
+
+    .about-section {
+        padding-top: 60px;
+        padding-bottom: 60px;
+    }
+
+    .about-section .container {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .about-section .container .how-it-work {
+        width: 100%;
+        padding-left: 0;
+        margin-top: 24px;
+    }
+
+    .about-section .container img {
+        width: 100%;
+        max-width: 350px;
+    }
+
+    .sign-american {
+        padding-top: 60px;
+    }
+
+    .sign-american .container h1 {
+        font-size: 30px;
+        text-align: center;
+    }
+
+    .about-us .container {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .about-me,
+    .my-vision,
+    .my-goal {
+        margin: 0;
+        width: 100%;
+    }
+
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .foot .container {
+        grid-template-columns: 1fr;
+        text-align: center;
+        gap: 18px;
+    }
+
+    .foot .container .terminology div {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
+
+    /* ── Auth pages ── */
+    .login-page,
+    .create-page {
+        height: auto;
+        min-height: 100vh;
+        padding: 30px 15px;
+    }
+
+    .login-card,
+    .create-card {
+        width: 100%;
+        max-width: 560px;
+        flex-direction: column;
+        height: auto;
+        min-height: unset;
+        border-radius: 14px;
+    }
+
+    .visual-side,
+    .visual-side-create {
+        display: none;
+    }
+
+    .login-form-side,
+    .create-form-side {
+        width: 100%;
+        padding: 34px 20px;
+    }
+
+    .welcome-tag {
+        position: static;
+        display: inline-block;
+        margin: 0 auto 14px;
+    }
+
+    .footer-links {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* ── Camera page ──────────────────────────────────────────
+       FIX: keep both video boxes visible and usable on mobile
+       ─────────────────────────────────────────────────────── */
+    .back-btn {
+        top: 10px;
+        left: 10px;
+        padding: 8px 14px;
+        z-index: 1001;
+    }
+
+    .page {
+        padding: 70px 12px 20px;
+        align-items: flex-start;
+    }
+
+    .card {
+        border-radius: 14px;
+        padding: 16px;
+    }
+
+    /* Stack the two video boxes vertically */
+    .top-section {
+        flex-direction: column;
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+
+    /* Give each box a reasonable height so they are actually visible */
+    .video-box {
+        width: 100%;
+        height: 260px;
+        /* enough to see the camera feed */
+        flex: none;
+        /* override flex:1 so it doesn't collapse */
+    }
+
+    .bottom-section {
+        padding: 14px;
+    }
+
+    .top-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .char {
+        text-align: center;
+    }
+
+    .buttons {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        min-width: 94px;
+    }
+
+    .label {
+        font-size: 16px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .translate {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .translate select,
+    .translate .btn,
+    .translate-btn {
+        width: 100%;
+    }
+
+    /* ── Tool pages (Learn / Voice / Quiz / Text to Sign) ── */
+    .voice-card,
+    .learn-card,
+    .quiz-card,
+    .text-to-sign-card {
+        width: 100%;
+        max-width: 100%;
+        margin: 15px auto !important;
+        padding: 20px 14px !important;
+    }
+
+    .voice-title,
+    .learn-title,
+    .quiz-title,
+    .tts-title {
+        font-size: 1.7rem !important;
+    }
+
+    .mode-toggle {
+        flex-wrap: wrap;
+    }
+
+    .mode-btn {
+        white-space: normal;
+        text-align: center;
+    }
+
+    .search-area,
+    .manual-input,
+    .type-input-area,
+    .tts-input-area {
+        flex-direction: column;
+    }
+
+    .search-input,
+    .manual-input input,
+    .type-input,
+    .tts-input,
+    .search-btn,
+    .search-btn-voice,
+    .submit-btn,
+    .tts-show-btn {
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    .search-btn-voice {
+        margin: 0;
+    }
+
+    .lang-row,
+    .play-all-bar,
+    .video-nav,
+    .quiz-actions {
+        flex-wrap: wrap;
+    }
+
+    .lang-select {
+        width: 100%;
+        max-width: 320px;
+        margin-bottom: 0;
+    }
+
+    .word-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .word-name {
+        font-size: 20px;
+    }
+
+    .score-bar {
+        gap: 14px !important;
+        flex-wrap: wrap;
+    }
+
+    .score-value {
+        font-size: 24px !important;
+    }
+
+    .quiz-word-display {
+        font-size: 32px !important;
+    }
+
+    .quiz-video-area {
+        min-height: 220px;
+    }
+
+    .history-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .features-grid,
+    .options-grid,
+    .video-options-grid,
+    .words-grid {
+        grid-template-columns: 1fr !important;
     }
 }
 
-/* Large screen (labtop) */
+
+/* ============================================================
+   MOBILE PHONES  (≤ 767 px)
+   ============================================================ */
+@media (max-width: 767px) {
+
+    .container {
+        width: 100%;
+    }
+
+    .section1 .container h1 {
+        font-size: 1.95rem;
+        line-height: 1.35;
+    }
+
+    .section1 .container p {
+        font-size: 1rem;
+        line-height: 1.7;
+    }
+
+    .signlanguage .container h2,
+    .foot .container h2,
+    .about-section .container h1,
+    .sign-american .container h1 {
+        font-size: 1.6rem;
+    }
+
+    /* Camera: smaller height on phones but still visible */
+    .video-box {
+        height: 220px;
+    }
+
+    .voice-title,
+    .learn-title,
+    .quiz-title,
+    .tts-title {
+        font-size: 1.45rem !important;
+    }
+
+    .quiz-word-display {
+        font-size: 26px !important;
+        padding: 14px;
+    }
+
+    .score-value {
+        font-size: 21px !important;
+    }
+
+    .next-btn,
+    .replay-btn {
+        width: 100%;
+    }
+
+    .otp-inputs {
+        gap: 6px;
+    }
+
+    .otp-inputs input {
+        width: 42px;
+        height: 48px;
+        font-size: 1.2rem;
+    }
+
+    /* Dropdown on mobile: position relative to viewport center */
+    .nav-dropdown-menu {
+        left: 50% !important;
+        transform: translateX(-50%) translateY(-8px) !important;
+        max-width: 90vw;
+    }
+
+    .nav-dropdown.open .nav-dropdown-menu {
+        transform: translateX(-50%) translateY(0) !important;
+    }
+}
+
+
+/* ============================================================
+   TABLETS  (768 px – 991 px)
+   ============================================================ */
+@media (min-width: 768px) and (max-width: 991px) {
+
+    .container {
+        width: 750px;
+    }
+
+    .features-grid,
+    .words-grid,
+    .options-grid,
+    .video-options-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    .search-area,
+    .manual-input,
+    .type-input-area,
+    .tts-input-area,
+    .quiz-actions {
+        flex-direction: row;
+    }
+
+    .search-btn,
+    .search-btn-voice,
+    .submit-btn,
+    .tts-show-btn,
+    .type-input,
+    .tts-input,
+    .search-input,
+    .manual-input input {
+        width: auto !important;
+    }
+
+    /* Camera on tablets: side-by-side still looks fine, just shorter */
+    .video-box {
+        height: 280px;
+    }
+}
+
+
+/* ============================================================
+   LARGE SCREEN – laptop  (≥ 992 px)
+   ============================================================ */
 @media (min-width: 992px) {
     .container {
         width: 970px;
     }
 }
 
-/* X-Large screen (computer) */
+
+/* ============================================================
+   X-LARGE SCREEN – desktop  (≥ 1200 px)
+   ============================================================ */
 @media (min-width: 1200px) {
     .container {
         width: 1170px;

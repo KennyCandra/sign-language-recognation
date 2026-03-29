@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice to Sign Language - SLR</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+    <style>
+        .voice-card {
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 30px;
+        }
+        .voice-title {
+            text-align: center;
+            color: #4f46e5;
+            margin-bottom: 5px;
+            font-size: 28px;
+        }
+        .voice-subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+        .mic-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        .mic-btn {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            border: none;
+            background: #4f46e5;
+            color: white;
+            font-size: 36px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(79,70,229,0.3);
+        }
+        .mic-btn:hover {
+            background: #4338ca;
+            transform: scale(1.05);
+        }
+        .mic-btn.listening {
+            background: #ef4444;
+            animation: pulse 1.2s infinite;
+            box-shadow: 0 0 0 0 rgba(239,68,68,0.5);
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+            70% { box-shadow: 0 0 0 20px rgba(239,68,68,0); }
+            100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+        }
+        .mic-status {
+            margin-top: 12px;
+            font-size: 14px;
+            color: #888;
+        }
+        .mic-status.active {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        .transcript-area {
+            background: #f8f8ff;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #e8e5ff;
+            min-height: 60px;
+        }
+        .transcript-label {
+            font-size: 13px;
+            color: #999;
+            margin-bottom: 8px;
+        }
+        .transcript-text {
+            font-size: 20px;
+            color: #333;
+            font-weight: 500;
+            min-height: 30px;
+        }
+        .transcript-text .interim {
+            color: #aaa;
+            font-style: italic;
+        }
+        .search-btn-voice {
+            display: block;
+            margin: 0 auto 25px;
+            padding: 12px 36px;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .search-btn-voice:hover {
+            background: #4338ca;
+        }
+        .search-btn-voice:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .results-area {
+            margin-top: 20px;
+        }
+        .word-result {
+            background: #f8f8ff;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 1px solid #e8e5ff;
+        }
+        .word-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .word-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #333;
+            text-transform: capitalize;
+        }
+        .word-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge-found {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+        .badge-notfound {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        .video-container {
+            text-align: center;
+            margin-top: 10px;
+        }
+        .video-container video {
+            max-width: 100%;
+            border-radius: 10px;
+            background: #000;
+        }
+        .video-nav {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 10px;
+        }
+        .video-nav button {
+            padding: 6px 18px;
+            border: 2px solid #4f46e5;
+            border-radius: 8px;
+            background: transparent;
+            color: #4f46e5;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .video-nav button:hover {
+            background: #4f46e5;
+            color: white;
+        }
+        .video-counter {
+            text-align: center;
+            font-size: 13px;
+            color: #888;
+            margin-top: 5px;
+        }
+        .play-all-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 12px;
+            background: #f0eeff;
+            border-radius: 10px;
+        }
+        .play-all-btn {
+            padding: 8px 20px;
+            background: #22c55e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        .play-all-btn:hover {
+            background: #16a34a;
+        }
+        .word-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 5px;
+        }
+        .word-chip {
+            padding: 3px 10px;
+            background: #e8e5ff;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #4f46e5;
+        }
+        .word-chip.playing {
+            background: #4f46e5;
+            color: white;
+        }
+        .not-supported {
+            text-align: center;
+            background: #fee2e2;
+            border-radius: 12px;
+            padding: 20px;
+            color: #dc2626;
+            margin-bottom: 20px;
+        }
+        .manual-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .manual-input input {
+            flex: 1;
+            padding: 12px 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .manual-input input:focus {
+            border-color: #4f46e5;
+        }
+        .lang-select {
+            padding: 8px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .lang-row {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <button class="back-btn" onclick="window.location.href='/'">Back</button>
+
+    <div class="voice-card">
+        <h1 class="voice-title">Voice to Sign Language</h1>
+        <p class="voice-subtitle">Speak into your microphone and see the sign language videos for each word</p>
+
+        <div class="lang-row">
+            <select id="speechLang" class="lang-select">
+                <option value="en-US">English</option>
+                <option value="ar-SA">Arabic</option>
+                <option value="fr-FR">French</option>
+                <option value="de-DE">German</option>
+                <option value="es-ES">Spanish</option>
+            </select>
+        </div>
+
+        <div id="notSupported" class="not-supported" style="display:none;">
+            Your browser does not support Speech Recognition. Please use Chrome or Edge. You can still type below.
+        </div>
+
+        <div class="mic-area">
+            <button class="mic-btn" id="micBtn" onclick="toggleListening()">🎤</button>
+            <div class="mic-status" id="micStatus">Click to start listening</div>
+        </div>
+
+        <div class="transcript-area">
+            <div class="transcript-label">Recognized Speech:</div>
+            <div class="transcript-text" id="transcriptText">...</div>
+        </div>
+
+        <div class="manual-input">
+            <input type="text" id="manualInput" placeholder="Or type words here...">
+            <button class="search-btn-voice" id="searchBtn" onclick="searchFromInput()">Show Signs</button>
+        </div>
+
+        <div id="playAllBar" class="play-all-bar" style="display:none;">
+            <button class="play-all-btn" onclick="playAllSequence()">▶ Play All Signs</button>
+            <div class="word-chips" id="wordChips"></div>
+        </div>
+
+        <div class="results-area" id="resultsArea"></div>
+    </div>
+
+    <footer class="foot">
+        <div class="container">
+            <div class="Communication">
+                <h2>Revolutionizing Sign Language Communication with Cutting-Edge Technology</h2>
+                <p>Explore the Features</p>
+            </div>
+        </div>
+    </footer>
+    <section class="copyrightsection">
+        <div class="container">
+            <p class="copyright">©2025 My Website. All rights reserved.</p>
+        </div>
+    </section>
+
+    <script>
+        const allWords = {{ words | tojson }};
+        let recognition = null;
+        let isListening = false;
+        let finalTranscript = '';
+        let restartAttempts = 0;
+        const MAX_RESTART = 5;
+
+        // Check Speech Recognition support
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            document.getElementById('notSupported').style.display = 'block';
+            document.getElementById('micBtn').disabled = true;
+        }
+
+        function toggleListening() {
+            if (isListening) {
+                stopListening();
+                let text = finalTranscript.trim() || document.getElementById('manualInput').value.trim();
+                if (text) translateAndSearch(text);
+            } else {
+                startListening();
+            }
+        }
+
+        function startListening() {
+            if (!SpeechRecognition) return;
+
+            // Create a fresh instance every time
+            if (recognition) {
+                try { recognition.abort(); } catch(e) {}
+                recognition = null;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.lang = document.getElementById('speechLang').value;
+            recognition.interimResults = true;
+            recognition.continuous = true;
+            recognition.maxAlternatives = 1;
+            restartAttempts = 0;
+
+            recognition.onstart = function() {
+                isListening = true;
+                restartAttempts = 0;
+                document.getElementById('micBtn').classList.add('listening');
+                document.getElementById('micStatus').textContent = 'Listening... Click to stop';
+                document.getElementById('micStatus').classList.add('active');
+            };
+
+            recognition.onaudiostart = function() {
+                document.getElementById('micStatus').textContent = 'Microphone active - speak now...';
+            };
+
+            recognition.onresult = function(event) {
+                let interim = '';
+                finalTranscript = '';
+                for (let i = 0; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript + ' ';
+                    } else {
+                        interim += event.results[i][0].transcript;
+                    }
+                }
+                let html = finalTranscript;
+                if (interim) html += '<span class="interim">' + interim + '</span>';
+                document.getElementById('transcriptText').innerHTML = html || '...';
+                document.getElementById('manualInput').value = (finalTranscript + interim).trim();
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Speech error:', event.error);
+                if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                    document.getElementById('micStatus').textContent = 'Microphone access denied! Please allow microphone in your browser.';
+                    document.getElementById('micStatus').classList.remove('active');
+                    isListening = false;
+                    document.getElementById('micBtn').classList.remove('listening');
+                } else if (event.error === 'no-speech') {
+                    // Don't stop, just wait - the onend handler will restart
+                    document.getElementById('micStatus').textContent = 'No speech heard - still listening...';
+                } else if (event.error === 'aborted') {
+                    // Intentional stop, do nothing
+                } else if (event.error === 'network') {
+                    document.getElementById('micStatus').textContent = 'Network error - check your internet connection.';
+                    stopListening();
+                }
+            };
+
+            recognition.onend = function() {
+                if (isListening && restartAttempts < MAX_RESTART) {
+                    // Auto-restart to keep listening
+                    restartAttempts++;
+                    try {
+                        recognition.start();
+                    } catch(e) {
+                        console.error('Restart failed:', e);
+                        stopListening();
+                    }
+                } else if (isListening) {
+                    // Max restarts reached, search with what we have
+                    let text = finalTranscript.trim() || document.getElementById('manualInput').value.trim();
+                    stopListening();
+                    if (text) translateAndSearch(text);
+                }
+            };
+
+            // Request microphone permission explicitly first
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+                // Got permission, stop the stream (recognition will use its own)
+                stream.getTracks().forEach(t => t.stop());
+                try {
+                    finalTranscript = '';
+                    recognition.start();
+                } catch(e) {
+                    console.error('Start failed:', e);
+                    document.getElementById('micStatus').textContent = 'Could not start speech recognition. Try refreshing the page.';
+                }
+            }).catch(function(err) {
+                console.error('Mic permission error:', err);
+                document.getElementById('micStatus').textContent = 'Microphone permission denied. Please allow access in browser settings.';
+            });
+        }
+
+        function stopListening() {
+            isListening = false;
+            if (recognition) {
+                try { recognition.stop(); } catch(e) {}
+            }
+            document.getElementById('micBtn').classList.remove('listening');
+            document.getElementById('micStatus').textContent = 'Click to start listening';
+            document.getElementById('micStatus').classList.remove('active');
+        }
+
+        function searchFromInput() {
+            let text = document.getElementById('manualInput').value.trim();
+            if (!text) return;
+            let lang = document.getElementById('speechLang').value;
+            if (lang !== 'en-US') {
+                translateAndSearch(text);
+            } else {
+                doSearch(text);
+            }
+        }
+
+        async function translateAndSearch(text) {
+            let lang = document.getElementById('speechLang').value;
+            if (lang === 'en-US') {
+                doSearch(text);
+                return;
+            }
+            // Translate to English first
+            let langName = {
+                'ar-SA': 'English', 'fr-FR': 'English',
+                'de-DE': 'English', 'es-ES': 'English'
+            }[lang] || 'English';
+            try {
+                let resp = await fetch('/translate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({text: text, lang: 'English'})
+                });
+                let data = await resp.json();
+                if (data.translation) {
+                    document.getElementById('transcriptText').innerHTML =
+                        text + ' → <strong>' + data.translation + '</strong>';
+                    doSearch(data.translation);
+                } else {
+                    doSearch(text);
+                }
+            } catch(e) {
+                doSearch(text);
+            }
+        }
+
+        async function doSearch(text) {
+            try {
+                let resp = await fetch('/search_videos', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({text: text})
+                });
+                let data = await resp.json();
+                if (data.results) {
+                    showResults(data.results);
+                }
+            } catch(e) {
+                console.error('Search error:', e);
+            }
+        }
+
+        let wordVideoData = {};
+
+        async function showResults(results) {
+            const area = document.getElementById('resultsArea');
+            area.innerHTML = '';
+            wordVideoData = {};
+
+            let foundWords = results.filter(r => r.found);
+
+            // Show play all bar if multiple words
+            const playBar = document.getElementById('playAllBar');
+            if (foundWords.length > 1) {
+                playBar.style.display = 'flex';
+                const chips = document.getElementById('wordChips');
+                chips.innerHTML = foundWords.map(r =>
+                    '<span class="word-chip" id="chip-' + r.word + '">' + r.word + '</span>'
+                ).join('');
+            } else {
+                playBar.style.display = 'none';
+            }
+
+            for (let r of results) {
+                const div = document.createElement('div');
+                div.className = 'word-result';
+                div.id = 'result-' + r.word;
+
+                if (!r.found) {
+                    div.innerHTML = '<div class="word-header"><span class="word-name">' + r.word +
+                        '</span><span class="word-badge badge-notfound">Not Found</span></div>' +
+                        '<p style="color:#999;">No sign video available for this word.</p>';
+                } else {
+                    // Fetch all videos for this word
+                    let vResp = await fetch('/word_videos/' + r.word);
+                    let vData = await vResp.json();
+                    wordVideoData[r.word] = {videos: vData.videos, index: 0};
+
+                    div.innerHTML = '<div class="word-header"><span class="word-name">' + r.word +
+                        '</span><span class="word-badge badge-found">' + vData.count + ' video(s)</span></div>' +
+                        '<div class="video-container" id="vc-' + r.word + '">' +
+                        '<video id="vid-' + r.word + '" src="/sign_video/' + vData.videos[0] +
+                        '" controls autoplay muted style="max-height:300px;"></video></div>' +
+                        (vData.count > 1 ? '<div class="video-nav">' +
+                        '<button onclick="navVideo(\'' + r.word + '\',-1)">◀ Prev</button>' +
+                        '<button onclick="navVideo(\'' + r.word + '\',1)">Next ▶</button></div>' +
+                        '<div class="video-counter" id="counter-' + r.word + '">1 / ' + vData.count + '</div>' : '');
+                }
+                area.appendChild(div);
+            }
+        }
+
+        function navVideo(word, dir) {
+            let d = wordVideoData[word];
+            if (!d) return;
+            d.index = (d.index + dir + d.videos.length) % d.videos.length;
+            let vid = document.getElementById('vid-' + word);
+            vid.src = '/sign_video/' + d.videos[d.index];
+            vid.play();
+            let counter = document.getElementById('counter-' + word);
+            if (counter) counter.textContent = (d.index + 1) + ' / ' + d.videos.length;
+        }
+
+        async function playAllSequence() {
+            let foundWords = Object.keys(wordVideoData);
+            for (let i = 0; i < foundWords.length; i++) {
+                let word = foundWords[i];
+                // Highlight chip
+                document.querySelectorAll('.word-chip').forEach(c => c.classList.remove('playing'));
+                let chip = document.getElementById('chip-' + word);
+                if (chip) chip.classList.add('playing');
+
+                // Scroll to result
+                let el = document.getElementById('result-' + word);
+                if (el) el.scrollIntoView({behavior: 'smooth', block: 'center'});
+
+                // Play video and wait
+                let vid = document.getElementById('vid-' + word);
+                if (vid) {
+                    vid.currentTime = 0;
+                    vid.muted = true;
+                    await vid.play();
+                    await new Promise(resolve => {
+                        vid.onended = resolve;
+                        setTimeout(resolve, 8000); // fallback max 8s
+                    });
+                }
+                // Small gap between words
+                await new Promise(r => setTimeout(r, 400));
+            }
+            document.querySelectorAll('.word-chip').forEach(c => c.classList.remove('playing'));
+        }
+
+        // Enter key on manual input
+        document.getElementById('manualInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') searchFromInput();
+        });
+    </script>
+</body>
+</html>

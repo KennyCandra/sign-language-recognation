@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Language Quiz - SLR</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+    <style>
+        .quiz-card {
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 30px;
+        }
+        .quiz-title {
+            text-align: center;
+            color: #4f46e5;
+            margin-bottom: 5px;
+            font-size: 28px;
+        }
+        .quiz-subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+        .score-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f8ff;
+            border-radius: 12px;
+            border: 1px solid #e8e5ff;
+        }
+        .score-item { text-align: center; }
+        .score-value { font-size: 28px; font-weight: bold; color: #4f46e5; }
+        .score-label { font-size: 12px; color: #999; text-transform: uppercase; }
+        .score-value.streak { color: #f59e0b; }
+        .score-value.correct { color: #22c55e; }
+        .score-value.wrong { color: #ef4444; }
+        .progress-bar-container {
+            width: 100%; height: 6px; background: #e0e0e0;
+            border-radius: 3px; margin-bottom: 20px; overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%; background: #4f46e5;
+            border-radius: 3px; transition: width 0.5s;
+        }
+        .mode-toggle {
+            display: flex; justify-content: center;
+            gap: 8px; margin-bottom: 20px; flex-wrap: wrap;
+        }
+        .mode-btn {
+            padding: 8px 16px; border: 2px solid #4f46e5;
+            border-radius: 20px; background: transparent;
+            color: #4f46e5; cursor: pointer; font-size: 13px;
+            transition: all 0.3s; white-space: nowrap;
+        }
+        .mode-btn.active { background: #4f46e5; color: white; }
+        .quiz-video-area {
+            text-align: center; margin-bottom: 20px;
+            background: #000; border-radius: 12px; overflow: hidden;
+            min-height: 280px; display: flex; align-items: center; justify-content: center;
+        }
+        .quiz-video-area video { max-width: 100%; max-height: 350px; }
+        .quiz-prompt {
+            text-align: center; font-size: 20px; color: #333;
+            margin-bottom: 15px; font-weight: 600;
+        }
+        .quiz-word-display {
+            text-align: center; font-size: 36px; font-weight: 700;
+            color: #4f46e5; margin-bottom: 20px; text-transform: capitalize;
+            padding: 20px; background: #f0eeff; border-radius: 12px;
+        }
+        .feedback {
+            text-align: center; font-size: 20px; font-weight: bold;
+            margin-bottom: 15px; min-height: 30px;
+        }
+        .feedback.correct { color: #22c55e; }
+        .feedback.wrong { color: #ef4444; }
+        .options-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 12px; margin-bottom: 20px;
+        }
+        .option-btn {
+            padding: 16px; border: 2px solid #e0e0e0; border-radius: 12px;
+            background: white; font-size: 18px; cursor: pointer;
+            transition: all 0.2s; text-transform: capitalize; font-weight: 500;
+        }
+        .option-btn:hover { border-color: #4f46e5; background: #f8f8ff; }
+        .option-btn.correct-answer { border-color: #22c55e; background: #dcfce7; color: #16a34a; }
+        .option-btn.wrong-answer { border-color: #ef4444; background: #fee2e2; color: #dc2626; }
+        .option-btn:disabled { cursor: not-allowed; }
+        .type-input-area {
+            display: flex; gap: 10px; justify-content: center; margin-bottom: 20px;
+        }
+        .type-input {
+            padding: 14px 20px; border: 2px solid #e0e0e0; border-radius: 12px;
+            font-size: 18px; width: 250px; text-align: center; outline: none;
+        }
+        .type-input:focus { border-color: #4f46e5; }
+        .submit-btn {
+            padding: 14px 24px; background: #4f46e5; color: white;
+            border: none; border-radius: 12px; font-size: 16px; cursor: pointer;
+        }
+        .submit-btn:hover { background: #4338ca; }
+        .quiz-actions {
+            display: flex; justify-content: center; gap: 12px;
+        }
+        .next-btn {
+            padding: 14px 40px; background: #4f46e5; color: white;
+            border: none; border-radius: 10px; font-size: 16px; cursor: pointer;
+        }
+        .next-btn:hover { background: #4338ca; }
+        .replay-btn {
+            padding: 14px 24px; background: transparent; color: #4f46e5;
+            border: 2px solid #4f46e5; border-radius: 10px; font-size: 16px; cursor: pointer;
+        }
+        .replay-btn:hover { background: #4f46e5; color: white; }
+
+        /* Video options grid for Pick the Sign */
+        .video-options-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 12px; margin-bottom: 20px;
+        }
+        .video-option {
+            border: 3px solid #e0e0e0; border-radius: 12px;
+            overflow: hidden; cursor: pointer; transition: all 0.3s;
+            background: #000; position: relative;
+        }
+        .video-option:hover { border-color: #4f46e5; transform: scale(1.02); }
+        .video-option video {
+            width: 100%; display: block; max-height: 200px; object-fit: contain;
+            background: #000; pointer-events: none;
+        }
+        .video-option .vid-label {
+            position: absolute; top: 8px; left: 8px;
+            background: rgba(0,0,0,0.7); color: white; padding: 2px 10px;
+            border-radius: 10px; font-size: 12px; font-weight: bold;
+        }
+        .video-option.correct-answer { border-color: #22c55e; box-shadow: 0 0 15px rgba(34,197,94,0.4); }
+        .video-option.wrong-answer { border-color: #ef4444; box-shadow: 0 0 15px rgba(239,68,68,0.4); }
+        .video-option.dimmed { opacity: 0.4; }
+        .history-section {
+            margin-top: 25px; padding: 20px; background: #f8f8ff;
+            border-radius: 12px; border: 1px solid #e8e5ff;
+        }
+        .history-title { color: #4f46e5; font-size: 18px; margin-bottom: 12px; text-align: center; }
+        .history-table {
+            width: 100%; border-collapse: collapse; font-size: 14px;
+        }
+        .history-table th {
+            background: #4f46e5; color: white; padding: 10px; text-align: center;
+        }
+        .history-table td {
+            padding: 8px 10px; text-align: center; border-bottom: 1px solid #e0e0e0;
+        }
+        .history-table tr:hover { background: #f0eeff; }
+    </style>
+</head>
+<body>
+
+    <button class="back-btn" onclick="window.location.href='/'">Back</button>
+
+    <div class="quiz-card">
+        <h1 class="quiz-title">Sign Language Quiz</h1>
+        <p class="quiz-subtitle">Test your ASL word knowledge with 3 different challenge modes!</p>
+
+        <div class="score-bar">
+            <div class="score-item"><div class="score-value" id="scoreTotal">0</div><div class="score-label">Questions</div></div>
+            <div class="score-item"><div class="score-value correct" id="scoreCorrect">0</div><div class="score-label">Correct</div></div>
+            <div class="score-item"><div class="score-value wrong" id="scoreWrong">0</div><div class="score-label">Wrong</div></div>
+            <div class="score-item"><div class="score-value streak" id="scoreStreak">0</div><div class="score-label">Streak &#x1F525;</div></div>
+        </div>
+
+        <div class="progress-bar-container"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+
+        <div class="mode-toggle">
+            <button class="mode-btn active" onclick="setMode('choice')" id="modeChoice">&#x1F4AC; Guess the Word</button>
+            <button class="mode-btn" onclick="setMode('type')" id="modeType">&#x2328;&#xFE0F; Type Answer</button>
+            <button class="mode-btn" onclick="setMode('pick')" id="modePick">&#x1F3AC; Pick the Sign</button>
+        </div>
+
+        <!-- === GUESS / TYPE: shows video, guess the word === -->
+        <div id="guessSection">
+            <div class="quiz-video-area" id="videoArea">
+                <video id="quizVideo" controls muted style="max-height:350px;"></video>
+            </div>
+            <div class="quiz-prompt" id="quizPrompt">What word is being signed?</div>
+            <div class="feedback" id="feedback"></div>
+            <div class="options-grid" id="optionsGrid"></div>
+            <div class="type-input-area" id="typeArea" style="display:none;">
+                <input type="text" class="type-input" id="typeInput" placeholder="Type the word...">
+                <button class="submit-btn" onclick="checkTyped()">Check</button>
+            </div>
+        </div>
+
+        <!-- === PICK THE SIGN: shows word, pick the correct video === -->
+        <div id="pickSection" style="display:none;">
+            <div class="quiz-word-display" id="pickWord"></div>
+            <div class="quiz-prompt">Which sign matches this word?</div>
+            <div class="feedback" id="pickFeedback"></div>
+            <div class="video-options-grid" id="videoOptionsGrid"></div>
+        </div>
+
+        <div class="quiz-actions">
+            <button class="replay-btn" onclick="replayVideo()" id="replayBtn">&#x1F504; Replay</button>
+            <button class="next-btn" onclick="nextQuestion()" id="nextBtn">Next Question &#x2192;</button>
+        </div>
+
+        <div class="history-section" id="historySection" style="display:none;">
+            <h3 class="history-title">Your Quiz History</h3>
+            <table class="history-table">
+                <thead><tr><th>Date</th><th>Questions</th><th>Correct</th><th>Wrong</th><th>Score %</th></tr></thead>
+                <tbody id="historyBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer class="foot">
+        <div class="container">
+            <div class="Communication">
+                <h2>Revolutionizing Sign Language Communication with Cutting-Edge Technology</h2>
+                <p>Explore the Features</p>
+            </div>
+        </div>
+    </footer>
+    <section class="copyrightsection">
+        <div class="container"><p class="copyright">&copy;2025 My Website. All rights reserved.</p></div>
+    </section>
+
+    <script>
+    let stats = {total:0, correct:0, wrong:0, streak:0, bestStreak:0};
+    let currentAnswer = '';
+    let answered = false;
+    let mode = 'choice';
+
+    // =========== MODE SWITCHING ===========
+    function setMode(m) {
+        mode = m;
+        document.getElementById('modeChoice').classList.toggle('active', m === 'choice');
+        document.getElementById('modeType').classList.toggle('active', m === 'type');
+        document.getElementById('modePick').classList.toggle('active', m === 'pick');
+
+        document.getElementById('guessSection').style.display = (m==='choice'||m==='type') ? '' : 'none';
+        document.getElementById('pickSection').style.display = m==='pick' ? '' : 'none';
+
+        document.getElementById('optionsGrid').style.display = m==='choice' ? 'grid' : 'none';
+        document.getElementById('typeArea').style.display = m==='type' ? 'flex' : 'none';
+
+        document.getElementById('replayBtn').style.display = (m==='choice'||m==='type') ? '' : 'none';
+
+        nextQuestion();
+    }
+
+    function nextQuestion() {
+        if (mode === 'choice' || mode === 'type') loadGuessQuestion();
+        else if (mode === 'pick') loadPickQuestion();
+    }
+
+    // =========== GUESS THE WORD (choice + type) ===========
+    async function loadGuessQuestion() {
+        answered = false;
+        clearFeedback('feedback');
+        document.getElementById('typeInput').value = '';
+        document.getElementById('typeInput').disabled = false;
+        document.getElementById('typeInput').style.borderColor = '#e0e0e0';
+
+        try {
+            let resp = await fetch('/quiz_question');
+            let data = await resp.json();
+            if (data.error) return;
+            currentAnswer = data.correct;
+            let vid = document.getElementById('quizVideo');
+            vid.src = '/sign_video/' + data.video_id;
+            vid.muted = false;
+            vid.play();
+            document.getElementById('quizPrompt').textContent = 'What word is being signed?';
+            if (mode === 'choice') {
+                let grid = document.getElementById('optionsGrid');
+                grid.innerHTML = '';
+                data.options.forEach(opt => {
+                    let btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.textContent = opt;
+                    btn.onclick = function() { checkGuessAnswer(opt, btn); };
+                    grid.appendChild(btn);
+                });
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    function checkGuessAnswer(selected, btnEl) {
+        if (answered) return;
+        answered = true; stats.total++;
+        let allBtns = document.querySelectorAll('#optionsGrid .option-btn');
+        allBtns.forEach(b => b.disabled = true);
+        if (selected === currentAnswer) {
+            markCorrect('feedback'); btnEl.classList.add('correct-answer');
+        } else {
+            markWrong('feedback', currentAnswer); btnEl.classList.add('wrong-answer');
+            allBtns.forEach(b => { if(b.textContent===currentAnswer) b.classList.add('correct-answer'); });
+        }
+        updateStats();
+    }
+
+    function checkTyped() {
+        if (answered) return;
+        let typed = document.getElementById('typeInput').value.trim().toLowerCase();
+        if (!typed) return;
+        answered = true; stats.total++;
+        document.getElementById('typeInput').disabled = true;
+        if (typed === currentAnswer) {
+            markCorrect('feedback');
+            document.getElementById('typeInput').style.borderColor = '#22c55e';
+        } else {
+            markWrong('feedback', currentAnswer);
+            document.getElementById('typeInput').style.borderColor = '#ef4444';
+        }
+        updateStats();
+    }
+
+    function replayVideo() {
+        let vid = document.getElementById('quizVideo');
+        vid.currentTime = 0; vid.play();
+    }
+
+    // =========== PICK THE SIGN ===========
+    let pickCorrectVideo = '';
+
+    async function loadPickQuestion() {
+        answered = false;
+        clearFeedback('pickFeedback');
+        pickCorrectVideo = '';
+        try {
+            let resp = await fetch('/quiz_pick_sign');
+            let data = await resp.json();
+            if (data.error) return;
+            document.getElementById('pickWord').textContent = data.word;
+            pickCorrectVideo = data.correct_video;
+            currentAnswer = data.word;
+
+            let grid = document.getElementById('videoOptionsGrid');
+            grid.innerHTML = '';
+            data.options.forEach((opt, i) => {
+                let div = document.createElement('div');
+                div.className = 'video-option';
+                div.innerHTML = '<span class="vid-label">' + String.fromCharCode(65+i) + '</span>' +
+                    '<video src="/sign_video/' + opt.video_id + '" muted loop preload="auto"></video>';
+                div.dataset.videoId = opt.video_id;
+                div.dataset.word = opt.word;
+                // Auto-play on hover
+                let v = div.querySelector('video');
+                div.addEventListener('mouseenter', () => { v.currentTime = 0; v.play(); });
+                div.addEventListener('mouseleave', () => { v.pause(); v.currentTime = 0; });
+                div.onclick = function() { checkPickAnswer(div); };
+                grid.appendChild(div);
+            });
+            // Auto-play all briefly
+            setTimeout(() => {
+                grid.querySelectorAll('video').forEach(v => { v.currentTime = 0; v.play(); });
+            }, 300);
+        } catch(e) { console.error(e); }
+    }
+
+    function checkPickAnswer(div) {
+        if (answered) return;
+        answered = true; stats.total++;
+        let allOpts = document.querySelectorAll('.video-option');
+        allOpts.forEach(o => { o.style.pointerEvents = 'none'; });
+
+        if (div.dataset.videoId === pickCorrectVideo) {
+            markCorrect('pickFeedback');
+            div.classList.add('correct-answer');
+            allOpts.forEach(o => { if(o !== div) o.classList.add('dimmed'); });
+        } else {
+            markWrong('pickFeedback', currentAnswer);
+            div.classList.add('wrong-answer');
+            allOpts.forEach(o => {
+                if (o.dataset.videoId === pickCorrectVideo) o.classList.add('correct-answer');
+                else if (o !== div) o.classList.add('dimmed');
+            });
+        }
+        updateStats();
+    }
+
+    // =========== SHARED HELPERS ===========
+    function clearFeedback(id) {
+        let el = document.getElementById(id);
+        el.textContent = ''; el.className = 'feedback';
+    }
+    function markCorrect(feedbackId) {
+        stats.correct++; stats.streak++;
+        if (stats.streak > stats.bestStreak) stats.bestStreak = stats.streak;
+        let el = document.getElementById(feedbackId);
+        el.textContent = 'Correct! \uD83C\uDF89';
+        el.className = 'feedback correct';
+    }
+    function markWrong(feedbackId, answer) {
+        stats.wrong++; stats.streak = 0;
+        let el = document.getElementById(feedbackId);
+        el.textContent = 'Wrong! The answer is "' + answer + '"';
+        el.className = 'feedback wrong';
+    }
+    function updateStats() {
+        document.getElementById('scoreTotal').textContent = stats.total;
+        document.getElementById('scoreCorrect').textContent = stats.correct;
+        document.getElementById('scoreWrong').textContent = stats.wrong;
+        document.getElementById('scoreStreak').textContent = stats.streak;
+        let pct = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
+        document.getElementById('progressBar').style.width = pct + '%';
+    }
+
+    let resultsSaved = false;
+
+    function saveOnLeave() {
+        if (stats.total === 0 || resultsSaved) return;
+        resultsSaved = true;
+        let data = JSON.stringify({total: stats.total, correct: stats.correct, wrong: stats.wrong});
+        navigator.sendBeacon('/save_quiz_result', new Blob([data], {type: 'application/json'}));
+    }
+
+    // Save when user leaves the page
+    window.addEventListener('beforeunload', saveOnLeave);
+
+    // Also save when clicking Back button
+    document.querySelector('.back-btn').addEventListener('click', function(e) {
+        saveOnLeave();
+    });
+
+    async function loadHistory() {
+        try {
+            let resp = await fetch('/quiz_history');
+            let data = await resp.json();
+            if (data.history && data.history.length > 0) {
+                let section = document.getElementById('historySection');
+                section.style.display = 'block';
+                let tbody = document.getElementById('historyBody');
+                tbody.innerHTML = '';
+                data.history.forEach(h => {
+                    let row = document.createElement('tr');
+                    row.innerHTML = '<td>' + (h.date || '-') + '</td><td>' + h.total +
+                        '</td><td style="color:#22c55e;font-weight:bold;">' + h.correct +
+                        '</td><td style="color:#ef4444;font-weight:bold;">' + h.wrong +
+                        '</td><td style="font-weight:bold;">' + h.score + '%</td>';
+                    tbody.appendChild(row);
+                });
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    document.getElementById('typeInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') checkTyped();
+    });
+
+    // Load first question
+    loadGuessQuestion();
+    // Load quiz history
+    loadHistory();
+    </script>
+</body>
+</html>

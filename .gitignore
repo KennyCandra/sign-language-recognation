@@ -25,6 +25,7 @@ Thumbs.db
 .DS_Store
 
 # Model data (large files)
+AI  model/
 AI  model/data/
 AI  model/asl_test/
 AI  model/train _graphs/

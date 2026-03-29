@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
     <title>SLR</title>
 </head>
 
@@ -16,15 +17,62 @@
 <img class="logo" src="{{ url_for('static', filename='images/logo.png') }}" alt="">
             <nav class="nav_links">
                 <ul>
-                  <li><a href="{{ url_for('home') }}">Home</a></li>
+                    <li><a href="{{ url_for('home') }}">Home</a></li>
                     <li><a href="{{ url_for('about_page') }}">About</a></li>
+                    {% if session.get('user_id') %}
+                    <li class="nav-dropdown" id="toolsDropdown">
+                        <span class="nav-dropdown-toggle" onclick="toggleToolsDropdown()">Tools <span class="arrow">▼</span></span>
+                        <div class="nav-dropdown-menu">
+                            <a href="{{ url_for('open_camera') }}"><span class="nav-icon">🔤</span> Letter Recognition</a>
+                            <div class="dropdown-divider"></div>
+                            <a href="{{ url_for('text_to_sign') }}"><span class="nav-icon">✍️</span> Text to Sign Language</a>
+                            <a href="{{ url_for('voice_to_sign') }}"><span class="nav-icon">🎙️</span> Voice to Sign Language</a>
+                            <div class="dropdown-divider"></div>
+                            <a href="{{ url_for('learn_sign') }}"><span class="nav-icon">🎓</span> Learn Sign Words</a>
+                            <a href="{{ url_for('sign_quiz') }}"><span class="nav-icon">🧠</span> Sign Language Quiz</a>
+                        </div>
+                    </li>
+                    {% else %}
                     <li><a href="{{ url_for('login') }}">Login</a></li>
                     <li><a href="{{ url_for('register') }}">Register</a></li>
-
+                    {% endif %}
                 </ul>
             </nav>
+            {% if session.get('user_id') %}
+            <div class="profile-wrapper">
+                <div class="profile-icon" onclick="toggleProfileDropdown()">
+                    {{ session.get('username', 'U')[0] | upper }}
+                </div>
+                <div class="profile-dropdown" id="profileDropdown">
+                    <div class="profile-info">
+                        <div class="profile-avatar">{{ session.get('username', 'U')[0] | upper }}</div>
+                        <div class="profile-details">
+                            <span class="profile-name">{{ session.get('username', 'User') }}</span>
+                            <span class="profile-email">{{ session.get('email', '') }}</span>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('logout') }}" class="profile-logout">Logout</a>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </header>
+    <script>
+        function toggleProfileDropdown() {
+            document.getElementById('profileDropdown').classList.toggle('show');
+        }
+        function toggleToolsDropdown() {
+            document.getElementById('toolsDropdown').classList.toggle('open');
+        }
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.profile-wrapper')) {
+                document.getElementById('profileDropdown')?.classList.remove('show');
+            }
+            if (!e.target.closest('.nav-dropdown')) {
+                document.getElementById('toolsDropdown')?.classList.remove('open');
+            }
+        });
+    </script>
     <!-- header end -->
     <!-- create acc satart -->
     <main class="create-page">
@@ -46,7 +94,10 @@
                     </div>
                     <div class="input-group">
                         <label for="password">Password</label>
-                        <input type="password" id="password" name="password" required>
+                        <div class="password-wrapper">
+                            <input type="password" id="password" name="password" required>
+                            <button type="button" class="toggle-password" onclick="togglePass('password', this)">&#128065;</button>
+                        </div>
                     </div>
                     {% with messages = get_flashed_messages(with_categories=true) %}
                      {% if messages %}
@@ -84,6 +135,15 @@
         </div>
     </section>
     <!-- copy right end -->
+
+    <script>
+    function togglePass(id, btn) {
+        var inp = document.getElementById(id);
+        if (inp.type === 'password') { inp.type = 'text'; btn.innerHTML = '&#128064;'; }
+        else { inp.type = 'password'; btn.innerHTML = '&#128065;'; }
+    }
+    </script>
+
 </body>
 
 </html>

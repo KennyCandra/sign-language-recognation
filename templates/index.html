@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
 
     <title>SLR</title>
 </head>
@@ -17,21 +18,62 @@
             <img class="logo" src="{{ url_for('static', filename='images/logo.png') }}" alt="">
             <nav class="nav_links">
                 <ul>
-                   <li><a href="{{ url_for('home') }}">Home</a></li>
+                    <li><a href="{{ url_for('home') }}">Home</a></li>
                     <li><a href="{{ url_for('about_page') }}">About</a></li>
                     {% if session.get('user_id') %}
-                    <li><a href="{{ url_for('open_camera') }}">Letters Camera</a></li>
-                    <li><a href="{{ url_for('words_camera') }}">Words Camera</a></li>
-                    <li><a href="{{ url_for('text_to_sign') }}">Text to Sign</a></li>
-                    <li><a href="{{ url_for('logout') }}">Logout</a></li>
+                    <li class="nav-dropdown" id="toolsDropdown">
+                        <span class="nav-dropdown-toggle" onclick="toggleToolsDropdown()">Tools <span class="arrow">▼</span></span>
+                        <div class="nav-dropdown-menu">
+                            <a href="{{ url_for('open_camera') }}"><span class="nav-icon">🔤</span> Letter Recognition</a>
+                            <div class="dropdown-divider"></div>
+                            <a href="{{ url_for('text_to_sign') }}"><span class="nav-icon">✍️</span> Text to Sign Language</a>
+                            <a href="{{ url_for('voice_to_sign') }}"><span class="nav-icon">🎙️</span> Voice to Sign Language</a>
+                            <div class="dropdown-divider"></div>
+                            <a href="{{ url_for('learn_sign') }}"><span class="nav-icon">🎓</span> Learn Sign Words</a>
+                            <a href="{{ url_for('sign_quiz') }}"><span class="nav-icon">🧠</span> Sign Language Quiz</a>
+                        </div>
+                    </li>
                     {% else %}
                     <li><a href="{{ url_for('login') }}">Login</a></li>
                     <li><a href="{{ url_for('register') }}">Register</a></li>
                     {% endif %}
                 </ul>
             </nav>
+            {% if session.get('user_id') %}
+            <div class="profile-wrapper">
+                <div class="profile-icon" onclick="toggleProfileDropdown()">
+                    {{ session.get('username', 'U')[0] | upper }}
+                </div>
+                <div class="profile-dropdown" id="profileDropdown">
+                    <div class="profile-info">
+                        <div class="profile-avatar">{{ session.get('username', 'U')[0] | upper }}</div>
+                        <div class="profile-details">
+                            <span class="profile-name">{{ session.get('username', 'User') }}</span>
+                            <span class="profile-email">{{ session.get('email', '') }}</span>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('logout') }}" class="profile-logout">Logout</a>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </header>
+    <script>
+        function toggleProfileDropdown() {
+            document.getElementById('profileDropdown').classList.toggle('show');
+        }
+        function toggleToolsDropdown() {
+            document.getElementById('toolsDropdown').classList.toggle('open');
+        }
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.profile-wrapper')) {
+                document.getElementById('profileDropdown')?.classList.remove('show');
+            }
+            if (!e.target.closest('.nav-dropdown')) {
+                document.getElementById('toolsDropdown')?.classList.remove('open');
+            }
+        });
+    </script>
     <!-- header end -->
 
     <!-- section1 start -->
@@ -64,21 +106,33 @@
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon">🔤</div>
-                    <h3>Letters Detection</h3>
-                    <p>Use your camera to practice ASL alphabet letters. The AI will recognize each letter you sign in real-time.</p>
-                    <a href="{{ url_for('open_camera') }}"><button class="feature-btn">Open Letters Camera</button></a>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">📝</div>
-                    <h3>Words Detection</h3>
-                    <p>Practice common ASL word signs. The AI detects word-level gestures like Hello, I Love You, Peace, and more.</p>
-                    <a href="{{ url_for('words_camera') }}"><button class="feature-btn">Open Words Camera</button></a>
+                    <h3>Letter Recognition</h3>
+                    <p>Use your camera to practice ASL alphabet letters. The AI recognizes each letter you sign in real-time.</p>
+                    <a href="{{ url_for('open_camera') }}"><button class="feature-btn">Open Letter Recognition</button></a>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">✍️</div>
-                    <h3>Text to Sign</h3>
-                    <p>Type any word in English and see how to sign it in ASL. Shows fingerspelling and common word signs.</p>
-                    <a href="{{ url_for('text_to_sign') }}"><button class="feature-btn">Open Text to Sign</button></a>
+                    <h3>Text to Sign Language</h3>
+                    <p>Type any text in English and see how to sign it in ASL. Converts your words into sign language videos.</p>
+                    <a href="{{ url_for('text_to_sign') }}"><button class="feature-btn">Open Text to Sign Language</button></a>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎓</div>
+                    <h3>Learn Sign Words</h3>
+                    <p>Watch tutorial videos for 2000 ASL words. Search any word or type a sentence to learn the signs.</p>
+                    <a href="{{ url_for('learn_sign') }}"><button class="feature-btn">Open Learn Sign Words</button></a>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎙️</div>
+                    <h3>Voice to Sign Language</h3>
+                    <p>Speak into your microphone and instantly see sign language videos for each word you say.</p>
+                    <a href="{{ url_for('voice_to_sign') }}"><button class="feature-btn">Open Voice to Sign Language</button></a>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🧠</div>
+                    <h3>Sign Language Quiz</h3>
+                    <p>Test your ASL knowledge! Watch a sign video and guess the word. Track your score and streak.</p>
+                    <a href="{{ url_for('sign_quiz') }}"><button class="feature-btn">Start Sign Language Quiz</button></a>
                 </div>
             </div>
         </div>
