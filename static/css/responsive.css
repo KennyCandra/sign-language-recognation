@@ -108,7 +108,7 @@ header .container {
 
     .container .nav_links li a,
     .nav-dropdown-toggle {
-        font-size: 14px;
+        font-size: 16px;
         white-space: nowrap;
         padding: 8px 0;
     }
@@ -125,7 +125,7 @@ header .container {
         max-width: min(92vw, 340px);
         margin: 0;
         z-index: 1200 !important;
-        padding: 8px 0;
+        padding: 8px 3px;
         /* padding top/bottom للقائمة نفسها */
     }
 
@@ -473,6 +473,11 @@ header .container {
    MOBILE PHONES  (≤ 767 px)
    ============================================================ */
 @media (max-width: 767px) {
+
+    .container .nav_links li a,
+    .nav-dropdown-toggle {
+        font-size: 15px;
+    }
 
     .container {
         width: 100%;

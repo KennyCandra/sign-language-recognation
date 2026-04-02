@@ -30,12 +30,12 @@
 
                 <form action="{{ url_for('verify_otp') }}" method="POST">
                     <div class="otp-inputs" dir="ltr">
-                        <input type="text" maxlength="1" class="otp-box" autofocus>
-                        <input type="text" maxlength="1" class="otp-box">
-                        <input type="text" maxlength="1" class="otp-box">
-                        <input type="text" maxlength="1" class="otp-box">
-                        <input type="text" maxlength="1" class="otp-box">
-                        <input type="text" maxlength="1" class="otp-box">
+                        <input type="text" maxlength="1" class="otp-box" inputmode="numeric" autofocus>
+                        <input type="text" maxlength="1" class="otp-box" inputmode="numeric">
+                        <input type="text" maxlength="1" class="otp-box" inputmode="numeric">
+                        <input type="text" maxlength="1" class="otp-box" inputmode="numeric">
+                        <input type="text" maxlength="1" class="otp-box" inputmode="numeric">
+                        <input type="text" maxlength="1" class="otp-box" inputmode="numeric">
                     </div>
                     <input type="hidden" id="otp" name="otp" value="">
 
@@ -54,6 +54,16 @@
         function updateHidden() {
             hiddenInput.value = Array.from(boxes).map(b => b.value).join('');
         }
+
+        function setOtpTypeByViewport() {
+            const isResponsive = window.matchMedia('(max-width: 991px)').matches;
+            boxes.forEach((box) => {
+                box.type = isResponsive ? 'number' : 'text';
+            });
+        }
+
+        setOtpTypeByViewport();
+        window.addEventListener('resize', setOtpTypeByViewport);
 
         boxes.forEach((box, i) => {
             box.addEventListener('input', (e) => {
