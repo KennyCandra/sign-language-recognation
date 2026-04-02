@@ -230,17 +230,17 @@ def reset_password():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        username = request.form.get("username")
-        email = request.form.get("email")
-        password = request.form.get("password")
+        username = (request.form.get("username") or "").strip()
+        email = (request.form.get("email") or "").strip()
+        password = request.form.get("password") or ""
 
         # Validation
         if not is_valid_email(email):
             flash("Invalid email address.", "error")
-            return render_template("register.html")
+            return render_template("register.html", username=username, email=email)
         if len(password) < 8 or not re.search(r"[A-Z]", password) or not re.search(r"\d", password) or not re.search(r"[@$!%*?&#]", password):
             flash("Password must be at least 8 chars, include uppercase, number and special char.", "error")
-            return render_template("register.html")
+            return render_template("register.html", username=username, email=email)
 
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -248,7 +248,7 @@ def register():
         if cursor.fetchone():
             conn.close()
             flash("You are already registered with this email.", "error")
-            return render_template("register.html")
+            return render_template("register.html", username=username, email=email)
         conn.close()
 
         # Send OTP for email verification
@@ -267,9 +267,9 @@ def register():
             return redirect(url_for('verify_register'))
         else:
             flash("Failed to send verification email. Please try again.", "error")
-            return render_template("register.html")
+            return render_template("register.html", username=username, email=email)
 
-    return render_template("register.html")
+    return render_template("register.html", username="", email="")
 
 @app.route("/verify-register", methods=["GET", "POST"])
 def verify_register():
@@ -336,9 +336,9 @@ def login():
             return redirect(url_for("home"))
         else:
             flash("Email or password incorrect.", "error")
-            return render_template("login.html")
+            return render_template("login.html", email=email)
     
-    return render_template("login.html")
+    return render_template("login.html", email="")
 
 @app.route("/logout")
 def logout():
@@ -639,4 +639,4 @@ def favicon():
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='127.0.0.1', port=port, debug=True)
+    app.run(host='127.0.0.1', port=port, debug=True, use_reloader=False)

@@ -367,7 +367,6 @@ header .container {
 
 footer {
     background: linear-gradient(to right, #1f2937, #111827, #000000);
-    padding-bottom: 60px;
 
 }
 
@@ -379,7 +378,6 @@ footer {
 
 .foot .container .terminology div {
     display: flex;
-    ;
     gap: 30px;
     color: white;
     padding: 15px 0;
@@ -387,6 +385,7 @@ footer {
 
 
 .foot .container h2 {
+    padding-top: 15px;
     font-size: 1.875rem;
     font-weight: 700;
     background-image: linear-gradient(to right, #93c5fd, #facc15);
@@ -574,7 +573,7 @@ footer {
 }
 
 .login-form-side {
-    flex: 3;
+    flex: 2;
     padding: 50px;
     background-color: #e6e6f0;
     color: #333;
@@ -585,9 +584,7 @@ footer {
 }
 
 .welcome-tag {
-    position: absolute;
-    top: 20px;
-    right: 20px;
+    text-align: right;
     background: linear-gradient(to right, #111827, #374151, #000000);
     color: white;
     padding: 5px 15px;
@@ -703,6 +700,14 @@ footer {
     flex: 2;
     width: 49%;
     background: linear-gradient(to right, #111827, #374151, #000000);
+    overflow: hidden;
+}
+
+.visual-side img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
 }
 
 /* login end */
@@ -721,7 +726,6 @@ footer {
 .create-card {
     display: flex;
     width: 850px;
-    height: 500px;
     background-color: #e6e6f0;
     border-radius: 20px;
     overflow: hidden;
@@ -729,8 +733,8 @@ footer {
 }
 
 .create-form-side {
-    flex: 3;
-    padding: 50px;
+    flex: 2;
+    padding: 20px 20px 30px 20px;
     background-color: #e6e6f0;
     color: #333;
     position: relative;
@@ -809,8 +813,7 @@ footer {
     display: flex;
     justify-content: center;
     width: 100%;
-    margin-top: 25px;
-    margin-bottom: 30px;
+    margin-top: 15px;
 }
 
 .footer-links-create a {
@@ -830,6 +833,14 @@ footer {
     flex: 2;
     width: 49%;
     background: linear-gradient(to right, #111827, #374151, #000000);
+    overflow: hidden;
+}
+
+.visual-side-create img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
 }
 
 /* create account end */

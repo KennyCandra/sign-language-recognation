@@ -187,7 +187,7 @@
         <!-- === GUESS / TYPE: shows video, guess the word === -->
         <div id="guessSection">
             <div class="quiz-video-area" id="videoArea">
-                <video id="quizVideo" controls muted style="max-height:350px;"></video>
+                <video id="quizVideo" muted autoplay loop playsinline preload="auto" style="max-height:350px;"></video>
             </div>
             <div class="quiz-prompt" id="quizPrompt">What word is being signed?</div>
             <div class="feedback" id="feedback"></div>
@@ -237,6 +237,7 @@
     let currentAnswer = '';
     let answered = false;
     let mode = 'choice';
+    let autoNextTimer = null;
 
     // =========== MODE SWITCHING ===========
     function setMode(m) {
@@ -257,8 +258,19 @@
     }
 
     function nextQuestion() {
+        if (autoNextTimer) {
+            clearTimeout(autoNextTimer);
+            autoNextTimer = null;
+        }
         if (mode === 'choice' || mode === 'type') loadGuessQuestion();
         else if (mode === 'pick') loadPickQuestion();
+    }
+
+    function scheduleAutoNext() {
+        if (autoNextTimer) clearTimeout(autoNextTimer);
+        autoNextTimer = setTimeout(() => {
+            nextQuestion();
+        }, 1400);
     }
 
     // =========== GUESS THE WORD (choice + type) ===========
@@ -275,9 +287,18 @@
             if (data.error) return;
             currentAnswer = data.correct;
             let vid = document.getElementById('quizVideo');
+            vid.pause();
+            vid.currentTime = 0;
             vid.src = '/sign_video/' + data.video_id;
-            vid.muted = false;
-            vid.play();
+            vid.muted = true;
+            vid.autoplay = true;
+            vid.loop = true;
+            vid.playsInline = true;
+            vid.load();
+            vid.play().catch(() => {});
+            vid.onloadeddata = function() {
+                vid.play().catch(() => {});
+            };
             document.getElementById('quizPrompt').textContent = 'What word is being signed?';
             if (mode === 'choice') {
                 let grid = document.getElementById('optionsGrid');
@@ -305,6 +326,7 @@
             allBtns.forEach(b => { if(b.textContent===currentAnswer) b.classList.add('correct-answer'); });
         }
         updateStats();
+        scheduleAutoNext();
     }
 
     function checkTyped() {
@@ -321,6 +343,7 @@
             document.getElementById('typeInput').style.borderColor = '#ef4444';
         }
         updateStats();
+        scheduleAutoNext();
     }
 
     function replayVideo() {
@@ -349,19 +372,22 @@
                 let div = document.createElement('div');
                 div.className = 'video-option';
                 div.innerHTML = '<span class="vid-label">' + String.fromCharCode(65+i) + '</span>' +
-                    '<video src="/sign_video/' + opt.video_id + '" muted loop preload="auto"></video>';
+                    '<video src="/sign_video/' + opt.video_id + '" muted autoplay loop playsinline preload="auto"></video>';
                 div.dataset.videoId = opt.video_id;
                 div.dataset.word = opt.word;
-                // Auto-play on hover
+                // Keep videos running automatically in pick mode.
                 let v = div.querySelector('video');
-                div.addEventListener('mouseenter', () => { v.currentTime = 0; v.play(); });
-                div.addEventListener('mouseleave', () => { v.pause(); v.currentTime = 0; });
+                v.addEventListener('loadeddata', () => {
+                    v.play().catch(() => {});
+                });
                 div.onclick = function() { checkPickAnswer(div); };
                 grid.appendChild(div);
             });
-            // Auto-play all briefly
+            // Retry autoplay after rendering to handle slower devices.
             setTimeout(() => {
-                grid.querySelectorAll('video').forEach(v => { v.currentTime = 0; v.play(); });
+                grid.querySelectorAll('video').forEach(v => {
+                    v.play().catch(() => {});
+                });
             }, 300);
         } catch(e) { console.error(e); }
     }
@@ -385,6 +411,7 @@
             });
         }
         updateStats();
+        scheduleAutoNext();
     }
 
     // =========== SHARED HELPERS ===========
