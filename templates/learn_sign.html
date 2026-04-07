@@ -8,10 +8,17 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
     <style>
+        body {
+            background: linear-gradient(to right, #1f2937, #111827, #000000);
+        }
         .learn-card {
             max-width: 900px;
             margin: 30px auto;
             padding: 30px;
+            background: rgba(55, 65, 81, 0.93);
+            border: 1px solid #4b5563;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
         }
         .learn-title {
             text-align: center;
@@ -21,7 +28,7 @@
         }
         .learn-subtitle {
             text-align: center;
-            color: #888;
+            color: #cbd5e1;
             margin-bottom: 25px;
             font-size: 14px;
         }
@@ -33,7 +40,9 @@
         .search-input {
             flex: 1;
             padding: 12px 18px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid #475569;
+            background: #111827;
+            color: #e5e7eb;
             border-radius: 10px;
             font-size: 16px;
             outline: none;
@@ -79,11 +88,11 @@
             margin-top: 20px;
         }
         .word-result {
-            background: #f8f8ff;
+            background: #1f2937;
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 15px;
-            border: 1px solid #e8e5ff;
+            border: 1px solid #475569;
         }
         .word-header {
             display: flex;
@@ -94,7 +103,7 @@
         .word-name {
             font-size: 22px;
             font-weight: bold;
-            color: #333;
+            color: #e5e7eb;
             text-transform: capitalize;
         }
         .word-badge {
@@ -252,6 +261,15 @@
 <body>
 
 <button class="back-btn" onclick="window.location.href='/'">Back</button>
+<button class="history-btn" onclick="window.location.href='{{ url_for('history_page') }}'">History</button>
+
+<div class="tools-toolbar">
+    <a href="{{ url_for('open_camera') }}">Letter Detection</a>
+    <a href="{{ url_for('text_to_sign') }}">Text to Sign</a>
+    <a href="{{ url_for('voice_to_sign') }}">Voice to Sign</a>
+    <a href="{{ url_for('learn_sign') }}">Learn Sign</a>
+    <a href="{{ url_for('sign_quiz') }}">Sign Quiz</a>
+</div>
 
 <div class="page">
     <div class="card learn-card">
@@ -267,6 +285,7 @@
             <div class="search-area">
                 <input type="text" class="search-input" id="search-input" placeholder="Type a word... (e.g. hello)" autocomplete="off">
                 <button class="search-btn" id="search-btn" onclick="doSearch()">Search</button>
+                <button class="search-btn" style="background:#f59e0b;" onclick="saveLearnItem(true)">Favorite ★</button>
             </div>
         </div>
 
@@ -274,6 +293,7 @@
             <div class="search-area">
                 <input type="text" class="search-input" id="sentence-search-input" placeholder="Type a sentence... (e.g. I want water)" autocomplete="off">
                 <button class="search-btn" onclick="doSentenceSearch()">Search</button>
+                <button class="search-btn" style="background:#f59e0b;" onclick="saveLearnItem(true)">Favorite ★</button>
             </div>
             <div class="results-area" id="sentence-results-area"></div>
             <p style="text-align:center;color:#888;font-size:13px;margin-bottom:10px;">Or pick a suggested sentence below:</p>
@@ -313,6 +333,33 @@ function searchWord(word) {
     }, 300);
 }
 
+async function saveLearnItem(favorite = false) {
+    const wordText = document.getElementById('search-input').value.trim();
+    const sentenceText = document.getElementById('sentence-search-input').value.trim();
+    const text = currentMode === 'sentence' ? sentenceText : wordText;
+
+    if (!text) {
+        alert('Please type something first.');
+        return;
+    }
+
+    try {
+        const response = await fetch('/save_learning', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({source: 'learn-sign', content: text, favorite: favorite})
+        });
+        const data = await response.json();
+        if (response.ok && data.status === 'saved' && favorite) {
+            alert('Added to favorites ★');
+        } else {
+            return;
+        }
+    } catch (e) {
+        if (favorite) alert('Could not favorite right now.');
+    }
+}
+
 document.getElementById('search-input').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') doSearch();
 });
@@ -338,6 +385,7 @@ async function doSearch() {
         }
 
         renderSingleWords(data.results);
+        saveLearnItem(false);
     } catch (err) {
         resultsArea.innerHTML = '<p class="no-result">Error searching. Please try again.</p>';
     }
@@ -632,6 +680,7 @@ async function doSentenceSearch() {
         const data = await response.json();
         if (data.status === 'success' && data.results) {
             renderSentence(data.results);
+            saveLearnItem(false);
             setTimeout(() => {
                 resultsArea.scrollIntoView({behavior: 'smooth', block: 'start'});
             }, 200);
@@ -644,6 +693,7 @@ async function doSentenceSearch() {
 async function playSentence(btn, sentence) {
     document.querySelectorAll('.sentence-chip.active').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
+    document.getElementById('sentence-search-input').value = sentence;
 
     const resultsArea = document.getElementById('sentence-results-area');
     resultsArea.innerHTML = '<p style="text-align:center;color:#888;">Loading...</p>';
@@ -657,6 +707,7 @@ async function playSentence(btn, sentence) {
         const data = await response.json();
         if (data.status === 'success' && data.results) {
             renderSentence(data.results);
+            saveLearnItem(false);
             setTimeout(() => {
                 resultsArea.scrollIntoView({behavior: 'smooth', block: 'start'});
             }, 200);

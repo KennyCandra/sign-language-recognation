@@ -7,11 +7,48 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+    <style>
+        body {
+            background: linear-gradient(to right, #1f2937, #111827, #000000);
+        }
+        .text-to-sign-card {
+            background: rgba(55, 65, 81, 0.93);
+            border: 1px solid #4b5563;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            color: #e5e7eb;
+        }
+        .tts-result-area,
+        .fingerspell-section {
+            background: #1f2937;
+            border: 1px solid #475569;
+            border-radius: 12px;
+        }
+        .tts-input {
+            background: #111827;
+            border-color: #475569;
+            color: #e5e7eb;
+        }
+        .tts-subtitle,
+        .result-label,
+        .current-letter-display span {
+            color: #cbd5e1;
+        }
+    </style>
 </head>
 
 <body>
 
 <button class="back-btn" onclick="window.location.href='/'">Back</button>
+<button class="history-btn" onclick="window.location.href='{{ url_for('history_page') }}'">History</button>
+
+<div class="tools-toolbar">
+    <a href="{{ url_for('open_camera') }}">Letter Detection</a>
+    <a href="{{ url_for('text_to_sign') }}">Text to Sign</a>
+    <a href="{{ url_for('voice_to_sign') }}">Voice to Sign</a>
+    <a href="{{ url_for('learn_sign') }}">Learn Sign</a>
+    <a href="{{ url_for('sign_quiz') }}">Sign Quiz</a>
+</div>
 
 <div class="page">
 
@@ -24,6 +61,7 @@
         <div class="tts-input-area">
             <input type="text" id="word-input" class="tts-input" placeholder="Type a word or sentence... (e.g. hello)" autocomplete="off">
             <button class="btn tts-show-btn" id="show-sign-btn">Show Sign</button>
+            <button class="btn tts-show-btn" id="favorite-learning-btn" style="background:#f59e0b;">Favorite ★</button>
         </div>
 
         <!-- Result Area -->
@@ -60,6 +98,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const wordInput = document.getElementById('word-input');
     const showSignBtn = document.getElementById('show-sign-btn');
+    const favoriteLearningBtn = document.getElementById('favorite-learning-btn');
     const resultArea = document.getElementById('result-area');
     const fingerspellSection = document.getElementById('fingerspell-section');
     const spellWord = document.getElementById('spell-word');
@@ -115,6 +154,22 @@ document.addEventListener('DOMContentLoaded', () => {
         resultArea.style.display = 'block';
         stopAnimation();
         showFingerspelling(word);
+
+        // Auto-save each item the user studies.
+        saveLearning(word, false);
+    }
+
+    async function saveLearning(text, favorite) {
+        try {
+            const resp = await fetch('/save_learning', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({source: 'text-to-sign', content: text, favorite: favorite})
+            });
+            return await resp.json();
+        } catch (e) {
+            return null;
+        }
     }
 
     // Show fingerspelling for a word
@@ -222,6 +277,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show sign button
     showSignBtn.addEventListener('click', () => {
         showSign(wordInput.value);
+    });
+
+    favoriteLearningBtn.addEventListener('click', async () => {
+        const text = wordInput.value.trim();
+        if (!text) {
+            alert('Please type something first.');
+            return;
+        }
+
+        const data = await saveLearning(text, true);
+        if (data && data.status === 'saved') alert('Added to favorites ★');
+        else alert((data && data.error) || 'Could not favorite right now.');
     });
 
     // Enter key

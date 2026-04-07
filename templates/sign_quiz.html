@@ -8,10 +8,17 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
     <style>
+        body {
+            background: linear-gradient(to right, #1f2937, #111827, #000000);
+        }
         .quiz-card {
             max-width: 800px;
             margin: 30px auto;
             padding: 30px;
+            background: rgba(55, 65, 81, 0.93);
+            border: 1px solid #4b5563;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
         }
         .quiz-title {
             text-align: center;
@@ -21,7 +28,7 @@
         }
         .quiz-subtitle {
             text-align: center;
-            color: #888;
+            color: #cbd5e1;
             margin-bottom: 25px;
             font-size: 14px;
         }
@@ -31,9 +38,9 @@
             gap: 30px;
             margin-bottom: 20px;
             padding: 15px;
-            background: #f8f8ff;
+            background: #1f2937;
             border-radius: 12px;
-            border: 1px solid #e8e5ff;
+            border: 1px solid #475569;
         }
         .score-item { text-align: center; }
         .score-value { font-size: 28px; font-weight: bold; color: #4f46e5; }
@@ -86,8 +93,8 @@
             gap: 12px; margin-bottom: 20px;
         }
         .option-btn {
-            padding: 16px; border: 2px solid #e0e0e0; border-radius: 12px;
-            background: white; font-size: 18px; cursor: pointer;
+            padding: 16px; border: 2px solid #475569; border-radius: 12px;
+            background: #111827; color: #e5e7eb; font-size: 18px; cursor: pointer;
             transition: all 0.2s; text-transform: capitalize; font-weight: 500;
         }
         .option-btn:hover { border-color: #4f46e5; background: #f8f8ff; }
@@ -98,8 +105,9 @@
             display: flex; gap: 10px; justify-content: center; margin-bottom: 20px;
         }
         .type-input {
-            padding: 14px 20px; border: 2px solid #e0e0e0; border-radius: 12px;
+            padding: 14px 20px; border: 2px solid #475569; border-radius: 12px;
             font-size: 18px; width: 250px; text-align: center; outline: none;
+            background: #111827; color: #e5e7eb;
         }
         .type-input:focus { border-color: #4f46e5; }
         .submit-btn {
@@ -120,6 +128,18 @@
             border: 2px solid #4f46e5; border-radius: 10px; font-size: 16px; cursor: pointer;
         }
         .replay-btn:hover { background: #4f46e5; color: white; }
+        .replay-btn:focus,
+        .replay-btn:active {
+            outline: none;
+        }
+
+        /* Prevent sticky hover state on touch devices */
+        @media (hover: none) and (pointer: coarse) {
+            .replay-btn:hover {
+                background: transparent;
+                color: #4f46e5;
+            }
+        }
 
         /* Video options grid for Pick the Sign */
         .video-options-grid {
@@ -159,11 +179,22 @@
             padding: 8px 10px; text-align: center; border-bottom: 1px solid #e0e0e0;
         }
         .history-table tr:hover { background: #f0eeff; }
+        .quiz-prompt { color: #e5e7eb; }
+        .history-section { background: #1f2937; border: 1px solid #475569; }
     </style>
 </head>
 <body>
 
     <button class="back-btn" onclick="window.location.href='/'">Back</button>
+    <button class="history-btn" onclick="window.location.href='{{ url_for('history_page') }}'">History</button>
+
+    <div class="tools-toolbar">
+        <a href="{{ url_for('open_camera') }}">Letter Detection</a>
+        <a href="{{ url_for('text_to_sign') }}">Text to Sign</a>
+        <a href="{{ url_for('voice_to_sign') }}">Voice to Sign</a>
+        <a href="{{ url_for('learn_sign') }}">Learn Sign</a>
+        <a href="{{ url_for('sign_quiz') }}">Sign Quiz</a>
+    </div>
 
     <div class="quiz-card">
         <h1 class="quiz-title">Sign Language Quiz</h1>
@@ -348,7 +379,10 @@
 
     function replayVideo() {
         let vid = document.getElementById('quizVideo');
-        vid.currentTime = 0; vid.play();
+        let replayBtn = document.getElementById('replayBtn');
+        vid.currentTime = 0;
+        vid.play().catch(() => {});
+        if (replayBtn) replayBtn.blur();
     }
 
     // =========== PICK THE SIGN ===========

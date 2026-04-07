@@ -273,6 +273,90 @@ header .container {
     background: #374151;
 }
 
+.profile-history {
+    display: block;
+    padding: 12px 16px;
+    color: #e5e7eb !important;
+    font-size: 14px;
+    font-weight: 500;
+    border-top: 1px solid #374151;
+    transition: background 0.2s ease;
+}
+
+.profile-history:hover {
+    background: #374151;
+}
+
+.history-btn {
+    position: fixed;
+    top: 94px;
+    left: 18px;
+    z-index: 999;
+    background: #16a34a;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+}
+
+.history-btn:hover {
+    background: #15803d;
+}
+
+@media (max-width: 768px) {
+    .back-btn {
+        position: absolute !important;
+        top: 12px !important;
+        left: 12px !important;
+        z-index: 1200;
+    }
+
+    .history-btn {
+        position: absolute !important;
+        top: 12px !important;
+        right: 12px !important;
+        left: auto !important;
+        z-index: 1200;
+        padding: 8px 12px;
+        font-size: 12px;
+        border-radius: 7px;
+    }
+}
+
+.tools-toolbar {
+    width: min(980px, calc(100% - 40px));
+    margin: 92px auto 12px;
+    padding: 10px;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid #334155;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+}
+
+.tools-toolbar a {
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #e2e8f0;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.tools-toolbar a:hover {
+    background: #4f46e5;
+    border-color: #6366f1;
+    color: #ffffff;
+}
+
 /* header end */
 
 /* section1 start */
@@ -1036,6 +1120,7 @@ footer {
     position: fixed;
     top: 20px;
     left: 20px;
+    z-index: 1100;
     padding: 10px 18px;
     background: #1976d2;
     border: none;

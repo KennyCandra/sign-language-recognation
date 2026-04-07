@@ -51,6 +51,7 @@
                             <span class="profile-email">{{ session.get('email', '') }}</span>
                         </div>
                     </div>
+                    <a href="{{ url_for('history_page') }}" class="profile-history">History</a>
                     <a href="{{ url_for('logout') }}" class="profile-logout">Logout</a>
                 </div>
             </div>

@@ -54,6 +54,92 @@ app.secret_key = os.environ.get('SECRET_KEY', 'anyrandomstring')
 # OTP storage: {email: {'otp': '123456', 'expires': datetime}}
 otp_storage = {}
 
+SUPPORTED_LANGUAGE_CODES = {'ar', 'en', 'fr', 'de', 'es'}
+LANGUAGE_ALIASES = {
+    'arabic': 'ar',
+    'ar': 'ar',
+    'ar-sa': 'ar',
+    'العربية': 'ar',
+    'english': 'en',
+    'en': 'en',
+    'en-us': 'en',
+    'francais': 'fr',
+    'french': 'fr',
+    'fr': 'fr',
+    'fr-fr': 'fr',
+    'allemand': 'de',
+    'german': 'de',
+    'de': 'de',
+    'de-de': 'de',
+    'spanish': 'es',
+    'espanol': 'es',
+    'español': 'es',
+    'es': 'es',
+    'es-es': 'es',
+}
+
+COMMON_TO_EN_FALLBACK = {
+    'bonjour': 'hello',
+    'salut': 'hello',
+    'merci': 'thanks',
+    'au revoir': 'goodbye',
+    'hola': 'hello',
+    'gracias': 'thanks',
+    'hallo': 'hello',
+    'danke': 'thanks',
+    'مرحبا': 'hello',
+    'اهلا': 'hello',
+    'أهلا': 'hello',
+}
+
+SEARCH_WORD_ALIASES = {
+    'hi': 'hello',
+    'hey': 'hello',
+    'greetings': 'hello',
+    'thanks': 'thankyou',
+    'thank': 'thankyou',
+    'goodbye': 'bye',
+}
+
+
+def normalize_language_code(lang_value, default='en', allow_auto=False):
+    """Normalize language input from UI labels or locale codes to a 2-letter code."""
+    if lang_value is None:
+        return 'auto' if allow_auto and default == 'auto' else default
+
+    raw = str(lang_value).strip().lower()
+    if not raw:
+        return 'auto' if allow_auto and default == 'auto' else default
+
+    if allow_auto and raw == 'auto':
+        return 'auto'
+
+    if raw in LANGUAGE_ALIASES:
+        return LANGUAGE_ALIASES[raw]
+
+    if raw in SUPPORTED_LANGUAGE_CODES:
+        return raw
+
+    if '-' in raw or '_' in raw:
+        base = raw.replace('_', '-').split('-')[0]
+        if base in SUPPORTED_LANGUAGE_CODES:
+            return base
+
+    return default
+
+
+def resolve_search_word(word):
+    """Map equivalent words to canonical keys that exist in WORD_VIDEOS_MAP."""
+    if not word:
+        return word
+
+    mapped = SEARCH_WORD_ALIASES.get(word, word)
+    if mapped in WORD_VIDEOS_MAP:
+        return mapped
+    if word in WORD_VIDEOS_MAP:
+        return word
+    return mapped
+
 # Email configuration
 SMTP_SERVER = 'smtp.gmail.com'
 SMTP_PORT = 587
@@ -111,6 +197,57 @@ def get_db_connection():
     conn = sqlite3.connect("database.db")
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def ensure_db_schema():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            email TEXT UNIQUE,
+            password TEXT
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS quiz_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            total_questions INTEGER NOT NULL,
+            correct_answers INTEGER NOT NULL,
+            wrong_answers INTEGER NOT NULL,
+            score_percent INTEGER NOT NULL,
+            played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS learning_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            source TEXT NOT NULL,
+            content TEXT NOT NULL,
+            is_favorite INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    ''')
+
+    # Backward-compatible migration for existing databases.
+    cursor.execute("PRAGMA table_info(learning_history)")
+    learning_cols = [row[1] for row in cursor.fetchall()]
+    if 'is_favorite' not in learning_cols:
+        cursor.execute('ALTER TABLE learning_history ADD COLUMN is_favorite INTEGER DEFAULT 0')
+
+    conn.commit()
+    conn.close()
+
+
+ensure_db_schema()
 
 # ----------------------- AI Prediction Function -----------------------
 def model_predict(landmarks):
@@ -234,11 +371,20 @@ def register():
         email = (request.form.get("email") or "").strip()
         password = request.form.get("password") or ""
 
+        # Clear stale pending registration data before starting a new validation flow.
+        session.pop('reg_username', None)
+        session.pop('reg_email', None)
+        session.pop('reg_password', None)
+
         # Validation
+        if not username:
+            flash("Username is required.", "error")
+            return render_template("register.html", username=username, email=email)
         if not is_valid_email(email):
             flash("Invalid email address.", "error")
             return render_template("register.html", username=username, email=email)
-        if len(password) < 8 or not re.search(r"[A-Z]", password) or not re.search(r"\d", password) or not re.search(r"[@$!%*?&#]", password):
+
+        if not is_valid_password(password):
             flash("Password must be at least 8 chars, include uppercase, number and special char.", "error")
             return render_template("register.html", username=username, email=email)
 
@@ -250,6 +396,9 @@ def register():
             flash("You are already registered with this email.", "error")
             return render_template("register.html", username=username, email=email)
         conn.close()
+
+        # Invalidate any previous OTP for this email; only keep the latest valid registration code.
+        otp_storage.pop(email, None)
 
         # Send OTP for email verification
         otp_code = generate_otp()
@@ -382,9 +531,10 @@ def search_videos():
         word_clean = re.sub(r'[^a-z]', '', word)
         if not word_clean:
             continue
-        videos = WORD_VIDEOS_MAP.get(word_clean, [])
+        search_word = resolve_search_word(word_clean)
+        videos = WORD_VIDEOS_MAP.get(search_word, [])
         results.append({
-            'word': word_clean,
+            'word': search_word,
             'found': len(videos) > 0,
             'video_count': len(videos),
             'video_id': videos[0] if videos else None
@@ -410,8 +560,9 @@ def serve_sign_video(video_id):
 @app.route('/word_videos/<word>')
 def get_word_videos(word):
     word_clean = re.sub(r'[^a-z]', '', word.lower())
-    videos = WORD_VIDEOS_MAP.get(word_clean, [])
-    return jsonify({'word': word_clean, 'videos': videos, 'count': len(videos)})
+    search_word = resolve_search_word(word_clean)
+    videos = WORD_VIDEOS_MAP.get(search_word, [])
+    return jsonify({'word': search_word, 'videos': videos, 'count': len(videos)})
 
 # ----------------------- Voice to Sign Route -----------------------
 @app.route("/voice-to-sign")
@@ -526,6 +677,104 @@ def quiz_history():
         })
     return jsonify({'history': history})
 
+
+@app.route('/save_learning', methods=['POST'])
+def save_learning():
+    if not session.get('user_id'):
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    data = request.get_json() or {}
+    content = (data.get('content') or '').strip()
+    source = (data.get('source') or 'text-to-sign').strip().lower()
+    is_favorite = 1 if data.get('favorite') else 0
+
+    if not content:
+        return jsonify({'error': 'No content provided'}), 400
+
+    if len(content) > 300:
+        return jsonify({'error': 'Content is too long'}), 400
+
+    allowed_sources = {'text-to-sign', 'learn-sign', 'voice-to-sign', 'camera'}
+    if source not in allowed_sources:
+        source = 'text-to-sign'
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Prevent duplicated rows for the same item; auto-save refreshes timestamp.
+    cursor.execute(
+        'SELECT id, is_favorite FROM learning_history WHERE user_id = ? AND source = ? AND content = ?',
+        (session['user_id'], source, content)
+    )
+    existing = cursor.fetchone()
+
+    if existing:
+        final_favorite = 1 if (existing['is_favorite'] or is_favorite) else 0
+        cursor.execute(
+            'UPDATE learning_history SET is_favorite = ?, created_at = CURRENT_TIMESTAMP WHERE id = ?',
+            (final_favorite, existing['id'])
+        )
+    else:
+        cursor.execute(
+            'INSERT INTO learning_history (user_id, source, content, is_favorite) VALUES (?, ?, ?, ?)',
+            (session['user_id'], source, content, is_favorite)
+        )
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({'status': 'saved', 'favorite': bool(is_favorite)})
+
+
+@app.route('/history')
+def history_page():
+    if not session.get('user_id'):
+        flash("You need to login first.", "error")
+        return redirect(url_for('login'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        'SELECT total_questions, correct_answers, wrong_answers, score_percent, played_at '
+        'FROM quiz_results WHERE user_id = ? ORDER BY played_at DESC LIMIT 30',
+        (session['user_id'],)
+    )
+    quiz_rows = cursor.fetchall()
+
+    cursor.execute(
+        'SELECT source, content, is_favorite, created_at FROM learning_history '
+        'WHERE user_id = ? ORDER BY created_at DESC LIMIT 100',
+        (session['user_id'],)
+    )
+    learn_rows = cursor.fetchall()
+    conn.close()
+
+    quiz_history_data = []
+    for r in quiz_rows:
+        quiz_history_data.append({
+            'total': r['total_questions'],
+            'correct': r['correct_answers'],
+            'wrong': r['wrong_answers'],
+            'score': r['score_percent'],
+            'date': r['played_at']
+        })
+
+    learning_history_data = []
+    for r in learn_rows:
+        learning_history_data.append({
+            'source': r['source'],
+            'content': r['content'],
+            'is_favorite': bool(r['is_favorite']),
+            'date': r['created_at']
+        })
+
+    return render_template(
+        'history.html',
+        quiz_history=quiz_history_data,
+        learning_history=learning_history_data
+    )
+
 # ----------------------- Predict Route -----------------------
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -566,31 +815,61 @@ def predict():
 @app.route('/translate', methods=['POST'])
 def translate_text():
     data = request.get_json()
-    if not data or 'text' not in data or 'lang' not in data:
-        return jsonify({'error': 'Missing text or language'}), 400
+    if not data or 'text' not in data:
+        return jsonify({'error': 'Missing text'}), 400
     
     try:
         text = data['text'].strip()
-        lang = data['lang']
+        lang = data.get('lang', 'en')
+        src_lang = data.get('src', 'auto')
         
         if not text:
             return jsonify({'error': 'Empty text'}), 400
         
-        lang_map = {
-            'Arabic': 'ar',
-            'English': 'en',
-            'French': 'fr',
-            'German': 'de',
-            'Spanish': 'es'
-        }
-        
-        target_lang = lang_map.get(lang, 'ar')
-        
+        target_lang = normalize_language_code(lang, default='en')
+        source_lang = normalize_language_code(src_lang, default='auto', allow_auto=True)
+
         translator = Translator()
-        result = translator.translate(text, dest=target_lang)
+        translated_text = ''
+
+        for _ in range(3):
+            try:
+                result = translator.translate(text, src=source_lang, dest=target_lang)
+                translated_text = (result.text or '').strip()
+                if translated_text:
+                    break
+            except Exception:
+                continue
+
+        # If explicit source fails, retry with auto-detect as fallback.
+        if not translated_text and source_lang != 'auto':
+            for _ in range(2):
+                try:
+                    result = translator.translate(text, src='auto', dest=target_lang)
+                    translated_text = (result.text or '').strip()
+                    if translated_text:
+                        break
+                except Exception:
+                    continue
+
+        # Fallback for short Arabic inputs where auto-detect can be unstable.
+        if translated_text == text and re.search(r'[\u0600-\u06FF]', text) and target_lang != 'ar':
+            try:
+                result = translator.translate(text, src='ar', dest=target_lang)
+                translated_text = (result.text or '').strip() or translated_text
+            except Exception:
+                pass
+
+        if target_lang == 'en' and source_lang != 'en' and translated_text.strip().lower() == text.strip().lower():
+            translated_text = COMMON_TO_EN_FALLBACK.get(text.strip().lower(), translated_text)
+
+        if not translated_text:
+            return jsonify({'error': 'Translation service unavailable. Try again.'}), 503
         
         return jsonify({
-            'translation': result.text,
+            'translation': translated_text,
+            'target_lang': target_lang,
+            'source_lang': source_lang,
             'status': 'success'
         })
         
@@ -612,20 +891,23 @@ def text_to_speech():
         if not text:
             return jsonify({'error': 'Empty text'}), 400
         
-        lang_map = {
-            'Arabic': 'ar',
-            'English': 'en',
-            'French': 'fr',
-            'German': 'de',
-            'Spanish': 'es'
-        }
-        
-        tts_lang = lang_map.get(lang, 'en')
-        
-        tts = gTTS(text=text, lang=tts_lang)
-        audio_buffer = io.BytesIO()
-        tts.write_to_fp(audio_buffer)
-        audio_buffer.seek(0)
+        tts_lang = normalize_language_code(lang, default='en')
+
+        last_error = None
+        audio_buffer = None
+        for _ in range(2):
+            try:
+                tts = gTTS(text=text, lang=tts_lang)
+                audio_buffer = io.BytesIO()
+                tts.write_to_fp(audio_buffer)
+                audio_buffer.seek(0)
+                break
+            except Exception as err:
+                last_error = err
+                audio_buffer = None
+
+        if audio_buffer is None:
+            raise RuntimeError(last_error or 'TTS generation failed')
         
         return send_file(audio_buffer, mimetype='audio/mpeg')
         

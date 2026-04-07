@@ -9,6 +9,27 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
+    <style>
+        body {
+            background: linear-gradient(to right, #1f2937, #111827, #000000);
+        }
+        .card {
+            background: rgba(55, 65, 81, 0.93);
+            border: 1px solid #4b5563;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            color: #e5e7eb;
+        }
+        .video-box {
+            border-color: #475569;
+            background: #1f2937;
+        }
+        .block .sentence-box {
+            background: #1f2937;
+            border: 1px solid #475569;
+            color: #e5e7eb;
+        }
+    </style>
 
 
 </head>
@@ -16,6 +37,15 @@
 <body>
 
 <button class="back-btn">Back</button>
+<button class="history-btn" onclick="window.location.href='{{ url_for('history_page') }}'">History</button>
+
+<div class="tools-toolbar">
+    <a href="{{ url_for('open_camera') }}">Letter Detection</a>
+    <a href="{{ url_for('text_to_sign') }}">Text to Sign</a>
+    <a href="{{ url_for('voice_to_sign') }}">Voice to Sign</a>
+    <a href="{{ url_for('learn_sign') }}">Learn Sign</a>
+    <a href="{{ url_for('sign_quiz') }}">Sign Quiz</a>
+</div>
 
 <div class="page">
 
@@ -55,6 +85,7 @@
                     <button class="btn start">Start</button>
                     <button class="btn stop">Stop</button>
                     <button class="btn clear">Clear</button>
+                    <button class="btn" id="favorite-camera-btn" style="background:#f59e0b;color:#fff;">Favorite ★</button>
                 </div>
             </div>
 
@@ -105,6 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const stopBtn = document.querySelector('.btn.stop');
     const backBtn = document.querySelector('.back-btn'); // زر الرجوع
     const clearBtn = document.querySelector('.btn.clear');
+    const favoriteCameraBtn = document.getElementById('favorite-camera-btn');
     const videoBox = document.querySelector('.top-section .video-box:first-child');
     const landmarksBox = document.querySelector('.top-section .video-box.light');
     const resultBox = document.getElementById("result");
@@ -114,6 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let videoElement = null;
     let animationId = null;
     let currentSentence = "";
+    let lastAutoSavedText = "";
 
     // Canvas للـ landmarks
     const canvasLandmarks = document.createElement('canvas');
@@ -304,7 +337,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Listeners
     startBtn.addEventListener("click", startCamera);
-    stopBtn.addEventListener("click", stopCamera);
+    stopBtn.addEventListener("click", async () => {
+        // Auto-save detected text when the user explicitly stops capture.
+        await saveCameraLearning(false);
+        stopCamera();
+    });
     clearBtn.addEventListener("click", () => {
         resultBox.innerText = "-";
         ctxLandmarks.clearRect(0, 0, canvasLandmarks.width, canvasLandmarks.height);
@@ -312,9 +349,49 @@ document.addEventListener('DOMContentLoaded', () => {
         sentenceBox.innerText = "";
     });
 
+    async function saveCameraLearning(favorite) {
+        const text = currentSentence.trim();
+        if (!text) return null;
+
+        lastAutoSavedText = text;
+
+        try {
+            const response = await fetch('/save_learning', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({source: 'camera', content: text, favorite: favorite})
+            });
+            return await response.json();
+        } catch (err) {
+            return null;
+        }
+    }
+
+    function saveCameraLearningOnLeave() {
+        const text = currentSentence.trim();
+        if (!text || text === lastAutoSavedText) return;
+
+        lastAutoSavedText = text;
+        const payload = JSON.stringify({source: 'camera', content: text, favorite: false});
+        navigator.sendBeacon('/save_learning', new Blob([payload], {type: 'application/json'}));
+    }
+
+    favoriteCameraBtn.addEventListener('click', async () => {
+        const text = currentSentence.trim();
+        if (!text) {
+            alert('No detected sentence to favorite yet.');
+            return;
+        }
+
+        const data = await saveCameraLearning(true);
+        if (data && data.status === 'saved') alert('Added to favorites ★');
+        else alert((data && data.error) || 'Could not favorite right now.');
+    });
+
     // Back button listener
     if (backBtn) {
-        backBtn.addEventListener('click', () => {
+        backBtn.addEventListener('click', async () => {
+            await saveCameraLearning(false);
             stopCamera(); // وقف الكاميرا أولاً
             if (document.referrer && document.referrer !== "") {
                 window.history.back();
@@ -323,6 +400,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    window.addEventListener('beforeunload', saveCameraLearningOnLeave);
+    window.addEventListener('pagehide', saveCameraLearningOnLeave);
     // ----------------------- Translation -----------------------
     const translateBtn = document.querySelector('.btn.translate-btn');
     const langSelect = document.getElementById('lang-select');
@@ -337,6 +417,8 @@ document.addEventListener('DOMContentLoaded', () => {
             translationBox.innerText = "No sentence to translate.";
             return;
         }
+
+        saveCameraLearning(false);
 
         translateBtn.innerText = "Translating...";
         translateBtn.disabled = true;

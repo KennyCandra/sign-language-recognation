@@ -8,10 +8,17 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
     <style>
+        body {
+            background: linear-gradient(to right, #1f2937, #111827, #000000);
+        }
         .voice-card {
             max-width: 900px;
             margin: 30px auto;
             padding: 30px;
+            background: rgba(55, 65, 81, 0.93);
+            border: 1px solid #4b5563;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
         }
         .voice-title {
             text-align: center;
@@ -21,7 +28,7 @@
         }
         .voice-subtitle {
             text-align: center;
-            color: #888;
+            color: #cbd5e1;
             margin-bottom: 25px;
             font-size: 14px;
         }
@@ -70,21 +77,21 @@
             font-weight: bold;
         }
         .transcript-area {
-            background: #f8f8ff;
+            background: #1f2937;
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 20px;
-            border: 1px solid #e8e5ff;
+            border: 1px solid #475569;
             min-height: 60px;
         }
         .transcript-label {
             font-size: 13px;
-            color: #999;
+            color: #6b7280;
             margin-bottom: 8px;
         }
         .transcript-text {
             font-size: 20px;
-            color: #333;
+            color: #e5e7eb;
             font-weight: 500;
             min-height: 30px;
         }
@@ -115,11 +122,11 @@
             margin-top: 20px;
         }
         .word-result {
-            background: #f8f8ff;
+            background: #1f2937;
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 15px;
-            border: 1px solid #e8e5ff;
+            border: 1px solid #475569;
         }
         .word-header {
             display: flex;
@@ -130,7 +137,7 @@
         .word-name {
             font-size: 22px;
             font-weight: bold;
-            color: #333;
+            color: #e5e7eb;
             text-transform: capitalize;
         }
         .word-badge {
@@ -189,7 +196,7 @@
             gap: 10px;
             margin-bottom: 20px;
             padding: 12px;
-            background: #f0eeff;
+            background: #374151;
             border-radius: 10px;
         }
         .play-all-btn {
@@ -238,7 +245,9 @@
         .manual-input input {
             flex: 1;
             padding: 12px 18px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid #475569;
+            background: #111827;
+            color: #e5e7eb;
             border-radius: 10px;
             font-size: 16px;
             outline: none;
@@ -249,7 +258,9 @@
         }
         .lang-select {
             padding: 8px 14px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid #475569;
+            background: #111827;
+            color: #e5e7eb;
             border-radius: 10px;
             font-size: 14px;
             outline: none;
@@ -267,6 +278,15 @@
 <body>
 
     <button class="back-btn" onclick="window.location.href='/'">Back</button>
+    <button class="history-btn" onclick="window.location.href='{{ url_for('history_page') }}'">History</button>
+
+    <div class="tools-toolbar">
+        <a href="{{ url_for('open_camera') }}">Letter Detection</a>
+        <a href="{{ url_for('text_to_sign') }}">Text to Sign</a>
+        <a href="{{ url_for('voice_to_sign') }}">Voice to Sign</a>
+        <a href="{{ url_for('learn_sign') }}">Learn Sign</a>
+        <a href="{{ url_for('sign_quiz') }}">Sign Quiz</a>
+    </div>
 
     <div class="voice-card">
         <h1 class="voice-title">Voice to Sign Language</h1>
@@ -299,6 +319,7 @@
         <div class="manual-input">
             <input type="text" id="manualInput" placeholder="Or type words here...">
             <button class="search-btn-voice" id="searchBtn" onclick="searchFromInput()">Show Signs</button>
+            <button class="search-btn-voice" id="favoriteVoiceBtn" style="background:#f59e0b;">Favorite ★</button>
         </div>
 
         <div id="playAllBar" class="play-all-bar" style="display:none;">
@@ -466,22 +487,33 @@
             }
         }
 
+        async function saveVoiceLearning(text, favorite) {
+            try {
+                let resp = await fetch('/save_learning', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({source: 'voice-to-sign', content: text, favorite: favorite})
+                });
+                let data = await resp.json();
+                return resp.ok ? data : null;
+            } catch(e) {
+                return null;
+            }
+        }
+
         async function translateAndSearch(text) {
             let lang = document.getElementById('speechLang').value;
             if (lang === 'en-US') {
                 doSearch(text);
                 return;
             }
-            // Translate to English first
-            let langName = {
-                'ar-SA': 'English', 'fr-FR': 'English',
-                'de-DE': 'English', 'es-ES': 'English'
-            }[lang] || 'English';
+            // Translate from the selected language to English before searching videos.
+            let sourceLang = (lang || 'auto').split('-')[0];
             try {
                 let resp = await fetch('/translate', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({text: text, lang: 'English'})
+                    body: JSON.stringify({text: text, lang: 'en', src: sourceLang})
                 });
                 let data = await resp.json();
                 if (data.translation) {
@@ -506,6 +538,7 @@
                 let data = await resp.json();
                 if (data.results) {
                     showResults(data.results);
+                    saveVoiceLearning(text, false);
                 }
             } catch(e) {
                 console.error('Search error:', e);
@@ -606,6 +639,18 @@
         // Enter key on manual input
         document.getElementById('manualInput').addEventListener('keydown', function(e) {
             if (e.key === 'Enter') searchFromInput();
+        });
+
+        document.getElementById('favoriteVoiceBtn').addEventListener('click', async function() {
+            let text = (finalTranscript || '').trim() || document.getElementById('manualInput').value.trim();
+            if (!text) {
+                alert('Please say or type something first.');
+                return;
+            }
+
+            let data = await saveVoiceLearning(text, true);
+            if (data && data.status === 'saved') alert('Added to favorites ★');
+            else alert((data && data.error) || 'Could not favorite right now.');
         });
     </script>
 </body>
