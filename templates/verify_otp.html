@@ -13,7 +13,6 @@
 <body>
 
     <button class="back-btn" onclick="window.location.href='{{ url_for('forget_password') }}'">Back</button>
-    <button class="history-btn" onclick="window.location.href='{{ url_for('history_page') }}'">History</button>
 
     <main class="reset-page">
         <div class="reset-card">
@@ -43,7 +42,9 @@
                     <button type="submit" class="send-otp-button">Verify</button>
                 </form>
 
-                <a href="{{ url_for('forget_password') }}" class="resend-link">Resend OTP</a>
+                <form action="{{ url_for('resend_otp') }}" method="POST" class="resend-otp-form">
+                    <button type="submit" class="resend-otp-button">Resend OTP</button>
+                </form>
             </div>
         </div>
     </main>

@@ -531,7 +531,8 @@ header .container {
     }
 
     .next-btn,
-    .replay-btn {
+    .replay-btn,
+    .show-result-btn {
         width: 100%;
     }
 
@@ -543,6 +544,18 @@ header .container {
         width: 42px;
         height: 48px;
         font-size: 1.2rem;
+    }
+
+    .resend-otp-form {
+        width: 100%;
+    }
+
+    .resend-otp-button {
+        width: 100%;
+        min-height: 46px;
+        padding: 12px 14px;
+        font-size: 0.92rem;
+        line-height: 1.2;
     }
 
     /* Dropdown on mobile: position relative to viewport center */
@@ -596,6 +609,17 @@ header .container {
     /* Camera on tablets: side-by-side still looks fine, just shorter */
     .video-box {
         height: 280px;
+    }
+
+    .resend-otp-button {
+        min-height: 44px;
+        padding: 11px 14px;
+        font-size: 0.95rem;
+    }
+
+    .show-result-btn {
+        min-height: 44px;
+        padding: 11px 16px;
     }
 }
 

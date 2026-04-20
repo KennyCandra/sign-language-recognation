@@ -97,7 +97,12 @@
             background: #111827; color: #e5e7eb; font-size: 18px; cursor: pointer;
             transition: all 0.2s; text-transform: capitalize; font-weight: 500;
         }
-        .option-btn:hover { border-color: #4f46e5; background: #f8f8ff; }
+        .option-btn:hover {
+            border-color: #6366f1;
+            background: #1f2937;
+            color: #f8fafc;
+            transform: translateY(-1px);
+        }
         .option-btn.correct-answer { border-color: #22c55e; background: #dcfce7; color: #16a34a; }
         .option-btn.wrong-answer { border-color: #ef4444; background: #fee2e2; color: #dc2626; }
         .option-btn:disabled { cursor: not-allowed; }
@@ -123,6 +128,16 @@
             border: none; border-radius: 10px; font-size: 16px; cursor: pointer;
         }
         .next-btn:hover { background: #4338ca; }
+        .show-result-btn {
+            padding: 14px 24px; background: #111827; color: #ffffff;
+            border: 2px solid #ffffff; border-radius: 10px; font-size: 16px; cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .show-result-btn:hover {
+            background: #ffffff;
+            color: #111827;
+            border-color: #111827;
+        }
         .replay-btn {
             padding: 14px 24px; background: transparent; color: #4f46e5;
             border: 2px solid #4f46e5; border-radius: 10px; font-size: 16px; cursor: pointer;
@@ -181,6 +196,37 @@
         .history-table tr:hover { background: #f0eeff; }
         .quiz-prompt { color: #e5e7eb; }
         .history-section { background: #1f2937; border: 1px solid #475569; }
+        .history-title,
+        .history-table td,
+        .history-table th {
+            color: #ffffff;
+        }
+        .history-table th {
+            background: #4f46e5;
+        }
+        .history-table td {
+            border-bottom: 1px solid #475569;
+        }
+        .history-table tr:hover {
+            background: #ffffff;
+        }
+        .history-table tr:hover td {
+            color: #111827;
+        }
+        .history-table td.history-correct {
+            color: #86efac;
+            font-weight: bold;
+        }
+        .history-table td.history-wrong {
+            color: #fca5a5;
+            font-weight: bold;
+        }
+        .history-table tr:hover td.history-correct {
+            color: #166534;
+        }
+        .history-table tr:hover td.history-wrong {
+            color: #991b1b;
+        }
     </style>
 </head>
 <body>
@@ -240,6 +286,7 @@
         <div class="quiz-actions">
             <button class="replay-btn" onclick="replayVideo()" id="replayBtn">&#x1F504; Replay</button>
             <button class="next-btn" onclick="nextQuestion()" id="nextBtn">Next Question &#x2192;</button>
+            <button class="show-result-btn" onclick="toggleResults()" id="showResultBtn">Show Result</button>
         </div>
 
         <div class="history-section" id="historySection" style="display:none;">
@@ -269,6 +316,7 @@
     let answered = false;
     let mode = 'choice';
     let autoNextTimer = null;
+    let persistedHistory = [];
 
     // =========== MODE SWITCHING ===========
     function setMode(m) {
@@ -473,44 +521,86 @@
         document.getElementById('scoreStreak').textContent = stats.streak;
         let pct = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
         document.getElementById('progressBar').style.width = pct + '%';
+
+        // Persist every answered question instantly to DB, then refresh history from DB.
+        persistQuizProgress();
     }
 
-    let resultsSaved = false;
+    async function persistQuizProgress() {
+        if (stats.total === 0) return;
 
-    function saveOnLeave() {
-        if (stats.total === 0 || resultsSaved) return;
-        resultsSaved = true;
-        let data = JSON.stringify({total: stats.total, correct: stats.correct, wrong: stats.wrong});
-        navigator.sendBeacon('/save_quiz_result', new Blob([data], {type: 'application/json'}));
+        try {
+            const payload = {
+                total: stats.total,
+                correct: stats.correct,
+                wrong: stats.wrong
+            };
+
+            const resp = await fetch('/save_quiz_progress', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!resp.ok) return;
+            await loadHistory();
+        } catch (e) {
+            console.error(e);
+        }
     }
 
-    // Save when user leaves the page
-    window.addEventListener('beforeunload', saveOnLeave);
+    function renderHistoryRows(historyItems) {
+        const tbody = document.getElementById('historyBody');
+        tbody.innerHTML = '';
+        historyItems.forEach(h => {
+            const row = document.createElement('tr');
+            row.innerHTML = '<td>' + (h.date || '-') + '</td><td>' + h.total +
+                '</td><td class="history-correct">' + h.correct +
+                '</td><td class="history-wrong">' + h.wrong +
+                '</td><td style="font-weight:bold;">' + h.score + '%</td>';
+            tbody.appendChild(row);
+        });
+    }
 
-    // Also save when clicking Back button
-    document.querySelector('.back-btn').addEventListener('click', function(e) {
-        saveOnLeave();
-    });
+    function refreshHistoryView() {
+        const section = document.getElementById('historySection');
+        const btn = document.getElementById('showResultBtn');
+
+        const merged = Array.isArray(persistedHistory) ? persistedHistory : [];
+
+        if (merged.length === 0) {
+            btn.disabled = true;
+            btn.textContent = 'No Results Yet';
+            btn.style.opacity = '0.6';
+            section.style.display = 'none';
+            return;
+        }
+
+        renderHistoryRows(merged.slice(0, 10));
+        btn.disabled = false;
+        btn.style.opacity = '1';
+
+        const isVisible = section.style.display === 'block';
+        btn.textContent = isVisible ? 'Hide Result' : 'Show Result';
+    }
 
     async function loadHistory() {
         try {
             let resp = await fetch('/quiz_history');
             let data = await resp.json();
-            if (data.history && data.history.length > 0) {
-                let section = document.getElementById('historySection');
-                section.style.display = 'block';
-                let tbody = document.getElementById('historyBody');
-                tbody.innerHTML = '';
-                data.history.forEach(h => {
-                    let row = document.createElement('tr');
-                    row.innerHTML = '<td>' + (h.date || '-') + '</td><td>' + h.total +
-                        '</td><td style="color:#22c55e;font-weight:bold;">' + h.correct +
-                        '</td><td style="color:#ef4444;font-weight:bold;">' + h.wrong +
-                        '</td><td style="font-weight:bold;">' + h.score + '%</td>';
-                    tbody.appendChild(row);
-                });
-            }
+            persistedHistory = Array.isArray(data.history) ? data.history : [];
+            refreshHistoryView();
         } catch(e) { console.error(e); }
+    }
+
+    function toggleResults() {
+        const section = document.getElementById('historySection');
+        const btn = document.getElementById('showResultBtn');
+        if (btn.disabled) return;
+
+        const isVisible = section.style.display === 'block';
+        section.style.display = isVisible ? 'none' : 'block';
+        btn.textContent = isVisible ? 'Show Result' : 'Hide Result';
     }
 
     document.getElementById('typeInput').addEventListener('keydown', function(e) {

@@ -329,7 +329,7 @@ header .container {
 
 .tools-toolbar {
     width: min(980px, calc(100% - 40px));
-    margin: 92px auto 12px;
+    margin: 20px auto 12px;
     padding: 10px;
     border-radius: 12px;
     background: rgba(15, 23, 42, 0.9);
@@ -339,6 +339,13 @@ header .container {
     flex-wrap: wrap;
     gap: 8px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+}
+
+@media (max-width: 991px) {
+    .tools-toolbar {
+        margin-top: 12px;
+        width: min(980px, calc(100% - 24px));
+    }
 }
 
 .tools-toolbar a {
@@ -987,6 +994,29 @@ footer {
 
 .resend-link:hover {
     text-decoration: underline;
+}
+
+.resend-otp-form {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.resend-otp-button {
+    width: 100%;
+    padding: 10px 16px;
+    border: 1px solid #7f85e3;
+    border-radius: 8px;
+    background: transparent;
+    color: #c0c0ff;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background 0.3s, color 0.3s, border-color 0.3s;
+}
+
+.resend-otp-button:hover {
+    background: #7f85e3;
+    color: #ffffff;
+    border-color: #7f85e3;
 }
 
 .reset-page {

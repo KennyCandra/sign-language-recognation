@@ -330,6 +330,26 @@ def verify_otp():
 
     return render_template("verify_otp.html", email=email)
 
+@app.route("/resend-otp", methods=["POST"])
+def resend_otp():
+    email = session.get('reset_email')
+    if not email:
+        flash("Please request OTP first.", "error")
+        return redirect(url_for('forget_password'))
+
+    otp_code = generate_otp()
+    otp_storage[email] = {
+        'otp': otp_code,
+        'expires': datetime.now() + timedelta(minutes=5)
+    }
+
+    if send_otp_email(email, otp_code, purpose='reset'):
+        flash("A new OTP has been sent to your email.", "success")
+    else:
+        flash("Failed to resend OTP. Please try again.", "error")
+
+    return redirect(url_for('verify_otp'))
+
 @app.route("/reset-password", methods=["GET", "POST"])
 def reset_password():
     email = session.get('reset_email')
@@ -465,6 +485,26 @@ def verify_register():
 
     return render_template("verify_register.html", email=email)
 
+@app.route("/resend-register-otp", methods=["POST"])
+def resend_register_otp():
+    email = session.get('reg_email')
+    if not email:
+        flash("Please register first.", "error")
+        return redirect(url_for('register'))
+
+    otp_code = generate_otp()
+    otp_storage[email] = {
+        'otp': otp_code,
+        'expires': datetime.now() + timedelta(minutes=5)
+    }
+
+    if send_otp_email(email, otp_code, purpose='register'):
+        flash("A new verification code has been sent to your email.", "success")
+    else:
+        flash("Failed to resend verification code. Please try again.", "error")
+
+    return redirect(url_for('verify_register'))
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -578,6 +618,8 @@ def sign_quiz():
     if not session.get("user_id"):
         flash("You need to login first.", "error")
         return redirect(url_for("login"))
+    # Start a fresh tracked attempt each time quiz page is opened.
+    session.pop('active_quiz_result_id', None)
     return render_template("sign_quiz.html")
 
 @app.route('/quiz_question', methods=['GET'])
@@ -633,6 +675,50 @@ def quiz_pick_sign():
     })
 
 # ----------------------- Quiz Results Routes -----------------------
+@app.route('/save_quiz_progress', methods=['POST'])
+def save_quiz_progress():
+    if not session.get('user_id'):
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    data = request.get_json() or {}
+    total = int(data.get('total', 0))
+    correct = int(data.get('correct', 0))
+    wrong = int(data.get('wrong', 0))
+
+    if total < 0 or correct < 0 or wrong < 0:
+        return jsonify({'error': 'Invalid counters'}), 400
+
+    score_pct = round((correct / total) * 100) if total > 0 else 0
+    user_id = session['user_id']
+    active_id = session.get('active_quiz_result_id')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    if active_id:
+        cursor.execute('SELECT id FROM quiz_results WHERE id = ? AND user_id = ?', (active_id, user_id))
+        exists = cursor.fetchone()
+        if exists:
+            cursor.execute(
+                'UPDATE quiz_results SET total_questions = ?, correct_answers = ?, wrong_answers = ?, score_percent = ?, played_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
+                (total, correct, wrong, score_pct, active_id, user_id)
+            )
+        else:
+            active_id = None
+
+    if not active_id:
+        cursor.execute(
+            'INSERT INTO quiz_results (user_id, total_questions, correct_answers, wrong_answers, score_percent) VALUES (?, ?, ?, ?, ?)',
+            (user_id, total, correct, wrong, score_pct)
+        )
+        active_id = cursor.lastrowid
+
+    conn.commit()
+    conn.close()
+
+    session['active_quiz_result_id'] = active_id
+    return jsonify({'status': 'saved', 'id': active_id})
+
 @app.route('/save_quiz_result', methods=['POST'])
 def save_quiz_result():
     if not session.get('user_id'):
