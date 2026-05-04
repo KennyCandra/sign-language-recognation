@@ -13,7 +13,6 @@
 <body>
 
     <button class="back-btn" onclick="window.location.href='{{ url_for('register') }}'">Back</button>
-    <button class="history-btn" onclick="window.location.href='{{ url_for('history_page') }}'">History</button>
 
     <main class="reset-page">
         <div class="reset-card">
@@ -41,6 +40,10 @@
                     <input type="hidden" id="otp" name="otp" value="">
 
                     <button type="submit" class="send-otp-button">Verify</button>
+                </form>
+
+                <form action="/resend-register-otp" method="POST" class="resend-otp-form">
+                    <button type="submit" class="resend-otp-button">Resend OTP</button>
                 </form>
 
                 <a href="{{ url_for('register') }}" class="resend-link">Back to Register</a>
