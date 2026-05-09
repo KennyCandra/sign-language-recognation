@@ -34,11 +34,19 @@ labels_dict = {
 
 
 # ----------------------- Load Word-to-Videos Mapping -----------------------
+# Use DigitalOcean Spaces CDN for videos when configured.
+VIDEO_BASE_URL = os.environ.get('VIDEO_BASE_URL', 'https://grad.fra1.cdn.digitaloceanspaces.com/videos').strip()
+if VIDEO_BASE_URL:
+    VIDEO_BASE_URL = VIDEO_BASE_URL.rstrip('/')
 VIDEOS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'AI  model', 'videos')
 word_videos_map_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'AI  model', 'word_videos_map.json')
 with open(word_videos_map_path, 'r') as f:
     WORD_VIDEOS_MAP = json.load(f)
 print(f"Word-to-videos mapping loaded: {len(WORD_VIDEOS_MAP)} words with videos")
+
+@app.context_processor
+def inject_video_base_url():
+    return {'video_base_url': VIDEO_BASE_URL}
 
 # ----------------------- Validation Functions -----------------------
 def is_valid_email(email):
@@ -590,6 +598,11 @@ def serve_sign_video(video_id):
     safe_id = re.sub(r'[^0-9]', '', video_id)
     if not safe_id:
         return jsonify({'error': 'Invalid video ID'}), 400
+
+    # Prefer CDN URL when configured; fallback to local file.
+    if VIDEO_BASE_URL:
+        base_url = VIDEO_BASE_URL.rstrip('/')
+        return redirect(f"{base_url}/{safe_id}.mp4")
 
     video_path = os.path.join(VIDEOS_DIR, f'{safe_id}.mp4')
     if not os.path.isfile(video_path):

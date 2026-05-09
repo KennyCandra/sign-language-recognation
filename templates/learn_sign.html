@@ -305,6 +305,10 @@
 </div>
 
 <script>
+const videoBaseUrl = {{ video_base_url | tojson }};
+function buildVideoUrl(videoId) {
+    return videoBaseUrl ? `${videoBaseUrl}/${videoId}.mp4` : `/sign_video/${videoId}`;
+}
 let currentMode = 'word';
 let playingAll = false;
 let playAllIndex = 0;
@@ -409,7 +413,7 @@ function renderSingleWords(results) {
         if (r.found && r.video_id) {
             html += `<div class="video-container">
                 <video controls autoplay loop muted playsinline>
-                    <source src="/sign_video/${r.video_id}" type="video/mp4">
+                    <source src="${buildVideoUrl(r.video_id)}" type="video/mp4">
                 </video>
             </div>`;
             if (r.video_count > 1) {
@@ -449,7 +453,7 @@ async function changeVideo(word, direction) {
 
     const container = document.querySelector(`#nav-${word}`).previousElementSibling;
     container.innerHTML = `<video controls autoplay loop muted playsinline>
-        <source src="/sign_video/${videos[idx]}" type="video/mp4">
+        <source src="${buildVideoUrl(videos[idx])}" type="video/mp4">
     </video>`;
 
     document.getElementById(`counter-${word}`).textContent = `${idx + 1} / ${videos.length}`;
@@ -484,7 +488,7 @@ function renderSentence(results) {
         if (r.found && r.video_id) {
             html += `<div class="video-container">
                 <video id="video-sentence-${i}" muted playsinline preload="auto">
-                    <source src="/sign_video/${r.video_id}" type="video/mp4">
+                    <source src="${buildVideoUrl(r.video_id)}" type="video/mp4">
                 </video>
             </div>`;
         } else {

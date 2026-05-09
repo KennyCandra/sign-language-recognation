@@ -311,6 +311,10 @@
     </section>
 
     <script>
+    const videoBaseUrl = {{ video_base_url | tojson }};
+    function buildVideoUrl(videoId) {
+        return videoBaseUrl ? `${videoBaseUrl}/${videoId}.mp4` : `/sign_video/${videoId}`;
+    }
     let stats = {total:0, correct:0, wrong:0, streak:0, bestStreak:0};
     let currentAnswer = '';
     let answered = false;
@@ -368,7 +372,7 @@
             let vid = document.getElementById('quizVideo');
             vid.pause();
             vid.currentTime = 0;
-            vid.src = '/sign_video/' + data.video_id;
+            vid.src = buildVideoUrl(data.video_id);
             vid.muted = true;
             vid.autoplay = true;
             vid.loop = true;
@@ -454,7 +458,7 @@
                 let div = document.createElement('div');
                 div.className = 'video-option';
                 div.innerHTML = '<span class="vid-label">' + String.fromCharCode(65+i) + '</span>' +
-                    '<video src="/sign_video/' + opt.video_id + '" muted autoplay loop playsinline preload="auto"></video>';
+                    '<video src="' + buildVideoUrl(opt.video_id) + '" muted autoplay loop playsinline preload="auto"></video>';
                 div.dataset.videoId = opt.video_id;
                 div.dataset.word = opt.word;
                 // Keep videos running automatically in pick mode.
