@@ -5,6 +5,4 @@ gunicorn
 googletrans==4.0.0-rc.1
 gTTS
 scikit-learn
-torch
-torchvision
 opencv-python
