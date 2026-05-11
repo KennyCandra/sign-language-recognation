@@ -12,10 +12,14 @@ RUN apt-get update \
     libxext6 \
     libxrender1 \
     ffmpeg \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
+
+RUN mkdir -p "AI  model" \
+    && curl -fL "https://grad.fra1.cdn.digitaloceanspaces.com/model/model.p" -o "AI  model/model.p"
 
 COPY . .
 
