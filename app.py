@@ -479,14 +479,18 @@ def verify_register():
                 "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
                 (username, email, hashed_password)
             )
+            user_id = cursor.lastrowid
             conn.commit()
             conn.close()
             # Clean up session
             session.pop('reg_username', None)
             session.pop('reg_email', None)
             session.pop('reg_password', None)
-            flash("Email verified! Registration successful. You can now login.", "success")
-            return redirect(url_for('login'))
+            session["user_id"] = user_id
+            session["username"] = username
+            session["email"] = email
+            flash("Registration successful! Logged in.", "success")
+            return redirect(url_for('home'))
         else:
             flash("Invalid OTP. Please try again.", "error")
             return render_template("verify_register.html", email=email)
