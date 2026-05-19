@@ -288,6 +288,13 @@ header .container {
         gap: 10px;
     }
 
+    .login-button,
+    .create-button {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
     /* ── Camera page ──────────────────────────────────────────
        FIX: keep both video boxes visible and usable on mobile
        ─────────────────────────────────────────────────────── */
@@ -348,12 +355,15 @@ header .container {
     }
 
     .buttons {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
         justify-content: center;
-        flex-wrap: wrap;
     }
 
     .btn {
-        min-width: 94px;
+        width: 100%;
+        min-width: 0;
     }
 
     .label {

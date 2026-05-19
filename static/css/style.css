@@ -289,8 +289,9 @@ header .container {
 
 .history-btn {
     position: fixed;
-    top: 94px;
-    left: 18px;
+    top: 20px;
+    right: 20px;
+    left: auto;
     z-index: 999;
     background: #16a34a;
     color: #fff;
@@ -325,6 +326,10 @@ header .container {
         font-size: 12px;
         border-radius: 7px;
     }
+
+    .back-btn+.history-btn+.tools-toolbar {
+        margin-top: 64px;
+    }
 }
 
 .tools-toolbar {
@@ -339,6 +344,11 @@ header .container {
     flex-wrap: wrap;
     gap: 8px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+}
+
+/* Give the fixed buttons room so they do not overlap the toolbar. */
+.back-btn+.history-btn+.tools-toolbar {
+    margin-top: 84px;
 }
 
 @media (max-width: 991px) {
@@ -758,6 +768,9 @@ footer {
     font-size: 1.1em;
     cursor: pointer;
     margin-top: 20px;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
     width: 150px;
 
     transition: background 0.3s;
@@ -891,6 +904,9 @@ footer {
     border-radius: 8px;
     font-size: 1.1em;
     cursor: pointer;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
     width: 150px;
 
     transition: background 0.3s;
